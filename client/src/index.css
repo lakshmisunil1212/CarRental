@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* We removed the @layer base { body { @apply ... } } block 
+   because it causes the "unknown utility" error in v4.
+   We will add those classes directly to your HTML file instead.
+*/
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-slate-100); 
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate-400); 
+  border-radius: 5px;
+  border: 2px solid var(--color-slate-100);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-slate-500); 
+}
