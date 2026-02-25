@@ -33,7 +33,11 @@ export default function Cars() {
   useEffect(() => {
     setLoading(true);
     fetchCars().then((data) => {
+      console.log("Fetched cars:", data);
       setCars(data || []);
+      setLoading(false);
+    }).catch((err) => {
+      console.error("Error fetching cars:", err);
       setLoading(false);
     });
   }, []);
@@ -50,11 +54,16 @@ export default function Cars() {
     
     // Filter by Price
     if (filters.maxPrice && c.pricePerDay > Number(filters.maxPrice)) {
+      console.log(`Filtering out ${c.make} ${c.model}: price ${c.pricePerDay} > ${Number(filters.maxPrice)}`);
       return false;
     }
 
     return true;
   });
+  
+  console.log("Filters:", filters);
+  console.log("Total cars:", cars.length);
+  console.log("Filtered cars:", filtered.length);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -102,7 +111,7 @@ export default function Cars() {
                   className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
                 >
                   {filtered.map((car) => (
-                    <motion.div key={car.id} variants={itemVariants} layout>
+                    <motion.div key={car._id || car.id} variants={itemVariants} layout>
                       <CarCard car={car} />
                     </motion.div>
                   ))}

@@ -65,7 +65,7 @@ export default function Home() {
                <motion.p 
                  initial={{ opacity: 0 }}
                  animate={{ opacity: 1 }}
-                 transition={{ delay: 0.2 }}
+                 transition={{ delay: 0.3 }}
                  className="text-lg text-blue-100 max-w-xl mx-auto"
                >
                  Premium cars, flexible bookings, and zero hidden fees. 

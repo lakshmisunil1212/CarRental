@@ -35,4 +35,11 @@ router.put("/:id", authMiddleware, adminOnly, async (req, res) => {
   res.json(car);
 });
 
+// DELETE /api/cars/:id (admin)
+router.delete("/:id", authMiddleware, adminOnly, async (req, res) => {
+  const car = await Car.findByIdAndDelete(req.params.id);
+  if (!car) return res.status(404).json({ message: "Car not found" });
+  res.json({ message: "Car deleted", car });
+});
+
 module.exports = router;

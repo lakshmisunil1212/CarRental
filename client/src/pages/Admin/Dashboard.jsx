@@ -23,13 +23,13 @@ export default function AdminDashboard() {
     { 
       title: "Manage Bookings", 
       desc: "View and update customer reservation statuses.", 
-      link: "#", // Add route /admin/bookings later
+      link: "/admin/bookings", 
       icon: Calendar 
     },
     { 
       title: "View Reports", 
       desc: "Analyze earnings and vehicle performance.", 
-      link: "#", 
+      link: "/admin/reports", 
       icon: FileText 
     },
   ];

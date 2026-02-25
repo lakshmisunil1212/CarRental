@@ -1,9 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Fuel, Gauge, ArrowRight } from "lucide-react";
+import { Users, Fuel, Gauge, ArrowRight, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function CarCard({ car }) {
+  const [imageError, setImageError] = useState(false);
+  const defaultFallback = "https://images.unsplash.com/photo-1549399542-7e3f8b83ad38?w=800&h=450&fit=crop";
+
+  // Get image URL or fallback
+  const getImageSrc = () => {
+    // If image failed to load or no image URL, use fallback
+    if (imageError || !car.img || car.img.trim() === "") {
+      return defaultFallback;
+    }
+    return car.img;
+  };
+
   return (
     <motion.div
       whileHover={{ y: -8 }}
@@ -11,12 +23,22 @@ export default function CarCard({ car }) {
       className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-100 border border-slate-100 flex flex-col h-full"
     >
       {/* Image Container with Zoom Effect */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-48 overflow-hidden bg-slate-100">
         <img
-          src={car.img}
+          src={getImageSrc()}
           alt={`${car.make} ${car.model}`}
+          onError={() => setImageError(true)}
+          onLoad={() => setImageError(false)}
           className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
         />
+        {imageError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-200 to-slate-300">
+            <div className="flex flex-col items-center gap-2 text-slate-500">
+              <ImageIcon size={32} />
+              <span className="text-xs text-center max-w-[80px]">{car.make} {car.model}</span>
+            </div>
+          </div>
+        )}
         <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-sky-600 shadow-sm">
           {car.year}
         </div>
@@ -56,7 +78,7 @@ export default function CarCard({ car }) {
         {/* Actions */}
         <div className="mt-auto flex gap-3">
           <Link
-            to={`/cars/${car.id}`}
+            to={`/cars/${car._id || car.id}`}
             className="flex-1 py-2.5 px-4 text-center rounded-xl bg-sky-50 text-sky-600 font-semibold hover:bg-sky-100 transition-colors text-sm"
           >
             Details

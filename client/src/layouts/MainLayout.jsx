@@ -31,6 +31,9 @@ export default function MainLayout({ children }) {
     { name: "Help", path: "/help", icon: <HelpCircle size={18} /> },
   ];
 
+  // Check if user is admin
+  const isAdmin = user?.role === "admin";
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
       {/* Glassmorphism Header */}
@@ -67,14 +70,16 @@ export default function MainLayout({ children }) {
             {/* --- NEW: CONDITIONAL AUTH SECTION --- */}
             {user ? (
               <div className="flex items-center gap-3">
-                {/* Admin Link */}
-                <Link 
-                  to="/admin" 
-                  className="p-2 text-slate-500 hover:text-sky-600 hover:bg-slate-100 rounded-full transition-colors"
-                  title="Admin Dashboard"
-                >
-                  <LayoutDashboard size={20} />
-                </Link>
+                {/* Admin Link - Only show for admins */}
+                {isAdmin && (
+                  <Link 
+                    to="/admin" 
+                    className="p-2 text-slate-500 hover:text-orange-600 hover:bg-orange-50 rounded-full transition-colors"
+                    title="Admin Dashboard"
+                  >
+                    <LayoutDashboard size={20} />
+                  </Link>
+                )}
 
                 {/* User Dropdown */}
                 <div className="relative group">

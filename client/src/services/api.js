@@ -1,82 +1,197 @@
-// Tiny mock API for development/demo.
-// Replace with real API calls (axios/fetch) when backend exists.
+// API Service - connects to backend at http://localhost:5000
+const API_BASE = "http://localhost:5000/api";
 
-const fakeCars = [
-  {
-    id: "1",
-    make: "Toyota",
-    model: "Camry",
-    year: 2021,
-    pricePerDay: 3500,
-    seats: 5,
-    img: "/images/toyato camery.avif"
-  },
-  {
-    id: "2",
-    make: "Honda",
-    model: "Civic",
-    year: 2020,
-    pricePerDay: 3000,
-    seats: 5,
-    img: "/images/2020_honda_civic_si_sedan_angularfront.jpg"
-  },
-  {
-    id: "3",
-    make: "Tesla",
-    model: "Model 3",
-    year: 2022,
-    pricePerDay: 5000,
-    seats: 5,
-    img: "/images/tesla-model-3.jpg"
+// Helper to get JWT token from localStorage
+function getAuthHeader() {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Helper for API calls with error handling
+async function apiCall(endpoint, options = {}) {
+  const url = `${API_BASE}${endpoint}`;
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+        ...options.headers
+      },
+      ...options
+    });
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: "Request failed" }));
+      throw new Error(error.message || `HTTP ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (err) {
+    console.error(`API Error at ${endpoint}:`, err);
+    throw err;
   }
-];
-
-export function fetchCars() {
-  return new Promise((res) => {
-    setTimeout(() => res([...fakeCars]), 300);
-  });
 }
 
-export function fetchCarById(id) {
-  return new Promise((res, rej) => {
-    setTimeout(() => {
-      const car = fakeCars.find((c) => c.id === id);
-      if (!car) return rej(new Error("Not found"));
-      res({ ...car });
-    }, 250);
-  });
+// AUTH ENDPOINTS
+export async function registerUser(userData) {
+  try {
+    const data = await apiCall("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData)
+    });
+    return data;
+  } catch (err) {
+    throw new Error(err.message || "Registration failed");
+  }
 }
 
-export function createBooking(booking) {
-  return new Promise((res) => {
-    const saved = { id: Date.now().toString(), ...booking };
-    // store in localStorage for demo
-    const all = JSON.parse(localStorage.getItem("bookings") || "[]");
-    all.push(saved);
-    localStorage.setItem("bookings", JSON.stringify(all));
-    setTimeout(() => res(saved), 300);
-  });
+export async function registerAdmin(adminData) {
+  try {
+    const data = await apiCall("/auth/register-admin", {
+      method: "POST",
+      body: JSON.stringify(adminData)
+    });
+    
+    // Store token for future requests
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+    
+    return data;
+  } catch (err) {
+    throw new Error(err.message || "Admin registration failed");
+  }
 }
 
-export function getMyBookings() {
-  return new Promise((res) => {
-    const all = JSON.parse(localStorage.getItem("bookings") || "[]");
-    setTimeout(() => res(all), 150);
-  });
+export async function loginUser(email, password) {
+  try {
+    const data = await apiCall("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+    
+    // Store token for future requests
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
+    
+    return data;
+  } catch (err) {
+    throw new Error(err.message || "Login failed");
+  }
 }
 
-export function adminCreateCar(car) {
-  return new Promise((res) => {
-    fakeCars.push({ id: Date.now().toString(), ...car });
-    setTimeout(() => res({ success: true }), 200);
-  });
+export async function verifyToken() {
+  try {
+    const data = await apiCall("/auth/verify");
+    return data;
+  } catch (err) {
+    localStorage.removeItem("token");
+    throw err;
+  }
 }
 
-export function adminUpdateCar(id, updates) {
-  return new Promise((res, rej) => {
-    const idx = fakeCars.findIndex((c) => c.id === id);
-    if (idx === -1) return rej(new Error("Not found"));
-    fakeCars[idx] = { ...fakeCars[idx], ...updates };
-    setTimeout(() => res({ success: true }), 200);
-  });
+export function logout() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
+
+// CAR ENDPOINTS
+export async function fetchCars(filters = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (filters.make) query.append("make", filters.make);
+    if (filters.maxPrice) query.append("maxPrice", filters.maxPrice);
+    
+    const endpoint = query.toString() ? `/cars?${query}` : "/cars";
+    const cars = await apiCall(endpoint);
+    return cars;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch cars");
+  }
+}
+
+export async function fetchCarById(id) {
+  try {
+    const car = await apiCall(`/cars/${id}`);
+    return car;
+  } catch (err) {
+    throw new Error(err.message || "Car not found");
+  }
+}
+
+export async function adminCreateCar(carData) {
+  try {
+    const car = await apiCall("/cars", {
+      method: "POST",
+      body: JSON.stringify(carData)
+    });
+    return car;
+  } catch (err) {
+    throw new Error(err.message || "Failed to create car");
+  }
+}
+
+export async function adminUpdateCar(id, updates) {
+  try {
+    const car = await apiCall(`/cars/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updates)
+    });
+    return car;
+  } catch (err) {
+    throw new Error(err.message || "Failed to update car");
+  }
+}
+
+export async function adminDeleteCar(id) {
+  try {
+    const result = await apiCall(`/cars/${id}`, {
+      method: "DELETE"
+    });
+    return result;
+  } catch (err) {
+    throw new Error(err.message || "Failed to delete car");
+  }
+}
+
+// BOOKING ENDPOINTS
+export async function createBooking(bookingData) {
+  try {
+    const booking = await apiCall("/bookings", {
+      method: "POST",
+      body: JSON.stringify(bookingData)
+    });
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to create booking");
+  }
+}
+
+export async function getMyBookings() {
+  try {
+    const bookings = await apiCall("/bookings/mine");
+    return bookings;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch bookings");
+  }
+}
+
+// ADMIN ENDPOINTS
+export async function adminGetAllBookings() {
+  try {
+    const bookings = await apiCall("/bookings");
+    return bookings;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch bookings");
+  }
+}
+
+export async function getAdminStats() {
+  try {
+    const stats = await apiCall("/admin/stats");
+    return stats;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch statistics");
+  }
 }
