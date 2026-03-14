@@ -1,3 +1,26 @@
+// Confirm pickup (customer or admin)
+export async function confirmPickup(id) {
+  try {
+    const booking = await apiCall(`/bookings/${id}/confirm-pickup`, {
+      method: "PATCH"
+    });
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to confirm pickup");
+  }
+}
+
+// Confirm return (customer or admin)
+export async function confirmReturn(id) {
+  try {
+    const booking = await apiCall(`/bookings/${id}/confirm-return`, {
+      method: "PATCH"
+    });
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to confirm return");
+  }
+}
 // API Service - connects to backend at http://localhost:5000
 const API_BASE = "http://localhost:5000/api";
 
@@ -28,6 +51,10 @@ async function apiCall(endpoint, options = {}) {
     return await response.json();
   } catch (err) {
     console.error(`API Error at ${endpoint}:`, err);
+    // Common network failure message produced by fetch can be confusing; translate it.
+    if (err instanceof TypeError && err.message === "Failed to fetch") {
+      throw new Error("Unable to reach server. Is the backend running?");
+    }
     throw err;
   }
 }
@@ -75,6 +102,16 @@ export async function loginUser(email, password) {
       localStorage.setItem("token", data.token);
     }
     
+    // Store user info including name
+    if (data.user) {
+      localStorage.setItem("user", JSON.stringify({
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role
+      }));
+    }
+    
     return data;
   } catch (err) {
     throw new Error(err.message || "Login failed");
@@ -102,6 +139,8 @@ export async function fetchCars(filters = {}) {
     const query = new URLSearchParams();
     if (filters.make) query.append("make", filters.make);
     if (filters.maxPrice) query.append("maxPrice", filters.maxPrice);
+    if (filters.location) query.append("location", filters.location);
+    if (filters.ownerName) query.append("ownerName", filters.ownerName);
     
     const endpoint = query.toString() ? `/cars?${query}` : "/cars";
     const cars = await apiCall(endpoint);
@@ -155,6 +194,15 @@ export async function adminDeleteCar(id) {
   }
 }
 
+export async function fetchMyCars() {
+  try {
+    const cars = await apiCall("/cars/mine");
+    return cars;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch your cars");
+  }
+}
+
 // BOOKING ENDPOINTS
 export async function createBooking(bookingData) {
   try {
@@ -177,7 +225,17 @@ export async function getMyBookings() {
   }
 }
 
-// ADMIN ENDPOINTS
+export async function updateBookingStatus(id, status) {
+  try {
+    const booking = await apiCall(`/bookings/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status })
+    });
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to update booking status");
+  }
+}
 export async function adminGetAllBookings() {
   try {
     const bookings = await apiCall("/bookings");
@@ -193,5 +251,42 @@ export async function getAdminStats() {
     return stats;
   } catch (err) {
     throw new Error(err.message || "Failed to fetch statistics");
+  }
+}
+
+// CANCELLATION ENDPOINTS
+export async function cancelBooking(id, reason = "") {
+  try {
+    const booking = await apiCall(`/bookings/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason })
+    });
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to cancel booking");
+  }
+}
+
+export async function approveCancellation(id) {
+  try {
+    const booking = await apiCall(`/bookings/${id}/cancel-approve`, {
+      method: "PUT",
+      body: JSON.stringify({})
+    });
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to approve cancellation");
+  }
+}
+
+export async function rejectCancellation(id) {
+  try {
+    const booking = await apiCall(`/bookings/${id}/cancel-reject`, {
+      method: "PUT",
+      body: JSON.stringify({})
+    });
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to reject cancellation");
   }
 }

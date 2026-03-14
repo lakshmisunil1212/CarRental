@@ -1,71 +1,85 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Calendar, User, MapPin, DollarSign, CheckCircle, Clock, XCircle, ArrowLeft } from "lucide-react";
+import { Calendar, User, MapPin, DollarSign, CheckCircle, Clock, XCircle, ArrowLeft, Check, X, AlertTriangle } from "lucide-react";
+import { adminGetAllBookings, updateBookingStatus, approveCancellation, rejectCancellation } from "../../services/api";
 
 export default function AdminBookings() {
   const navigate = useNavigate();
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [error, setError] = useState("");
+  console.log("AdminBookings mounted, initial state", { bookings, loading, filter, error });
 
-  // Mock booking data - Replace with API call later
-  const mockBookings = [
-    {
-      id: "BK001",
-      carName: "Toyota Camry",
-      customerName: "John Doe",
-      customerEmail: "john@example.com",
-      pickupDate: "2024-03-01",
-      dropoffDate: "2024-03-05",
-      pickupLocation: "New York",
-      dropoffLocation: "Boston",
-      totalAmount: 14000,
-      status: "confirmed",
-      createdAt: "2024-02-25"
-    },
-    {
-      id: "BK002",
-      carName: "Honda Civic",
-      customerName: "Jane Smith",
-      customerEmail: "jane@example.com",
-      pickupDate: "2024-03-02",
-      dropoffDate: "2024-03-08",
-      pickupLocation: "Los Angeles",
-      dropoffLocation: "San Francisco",
-      totalAmount: 18000,
-      status: "pending",
-      createdAt: "2024-02-24"
-    },
-    {
-      id: "BK003",
-      carName: "Tesla Model 3",
-      customerName: "Bob Wilson",
-      customerEmail: "bob@example.com",
-      pickupDate: "2024-02-28",
-      dropoffDate: "2024-03-02",
-      pickupLocation: "Chicago",
-      dropoffLocation: "Chicago",
-      totalAmount: 12000,
-      status: "completed",
-      createdAt: "2024-02-20"
-    },
-    {
-      id: "BK004",
-      carName: "Toyota Camry",
-      customerName: "Alice Johnson",
-      customerEmail: "alice@example.com",
-      pickupDate: "2024-03-10",
-      dropoffDate: "2024-03-12",
-      pickupLocation: "Seattle",
-      dropoffLocation: "Portland",
-      totalAmount: 7000,
-      status: "cancelled",
-      createdAt: "2024-02-22"
-    },
-  ];
+  useEffect(() => {
+    adminGetAllBookings()
+      .then(data => {
+        // sanitize bookings to avoid undefined props
+        const clean = data.map(b => ({
+          ...b,
+          totalAmount: b.totalAmount || 0,
+          car: b.car || {},
+          user: b.user || {}
+        }));
+        setBookings(clean);
+      })
+      .catch(err => {
+        console.error("AdminFetchError:", err);
+        setError(err.message);
+        // do NOT automatically redirect - keep message visible
+      })
+      .finally(() => setLoading(false));
+  }, [navigate]);
+
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      await updateBookingStatus(id, status);
+      setBookings(bookings.map(b => b._id === id ? { ...b, status } : b));
+    } catch (err) {
+      alert("Failed to update status: " + err.message);
+    }
+  };
+
+  const handleApproveCancellation = async (id) => {
+    try {
+      const updated = await approveCancellation(id);
+      setBookings(bookings.map(b => b._id === id ? updated : b));
+    } catch (err) {
+      alert("Failed to approve cancellation: " + err.message);
+    }
+  };
+
+  const handleRejectCancellation = async (id) => {
+    try {
+      const updated = await rejectCancellation(id);
+      setBookings(bookings.map(b => b._id === id ? updated : b));
+    } catch (err) {
+      alert("Failed to reject cancellation: " + err.message);
+    }
+  };
+
+  // log any bookings missing expected fields
+  useEffect(() => {
+    bookings.forEach(b => {
+      if (typeof b.totalAmount === 'undefined') {
+        console.warn('booking without totalAmount', b);
+      }
+      if (!b.car || !b.car.make) {
+        console.warn('booking without car info', b);
+      }
+      if (!b.user || !b.user.name) {
+        console.warn('booking without user info', b);
+      }
+    });
+  }, [bookings]);
 
   const filteredBookings = filter === "all" 
-    ? mockBookings 
-    : mockBookings.filter(b => b.status === filter);
+    ? bookings 
+    : filter === "cancellation_requests"
+    ? bookings.filter(b => b.cancellationStatus === "requested")
+    : bookings.filter(b => b.status === filter);
+  console.log("AdminBookings render with filtered", { filter, filteredBookings });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -123,7 +137,7 @@ export default function AdminBookings() {
           className="bg-white p-6 rounded-xl shadow-md border border-slate-200"
         >
           <p className="text-slate-600 text-sm font-medium">Total Bookings</p>
-          <p className="text-3xl font-bold text-slate-800 mt-2">{mockBookings.length}</p>
+          <p className="text-3xl font-bold text-slate-800 mt-2">{bookings.length}</p>
         </motion.div>
 
         <motion.div
@@ -134,7 +148,7 @@ export default function AdminBookings() {
         >
           <p className="text-slate-600 text-sm font-medium">Confirmed</p>
           <p className="text-3xl font-bold text-emerald-600 mt-2">
-            {mockBookings.filter(b => b.status === "confirmed").length}
+            {bookings.filter(b => b.status === "confirmed").length}
           </p>
         </motion.div>
 
@@ -146,7 +160,7 @@ export default function AdminBookings() {
         >
           <p className="text-slate-600 text-sm font-medium">Pending</p>
           <p className="text-3xl font-bold text-amber-600 mt-2">
-            {mockBookings.filter(b => b.status === "pending").length}
+            {bookings.filter(b => b.status === "pending").length}
           </p>
         </motion.div>
 
@@ -158,7 +172,7 @@ export default function AdminBookings() {
         >
           <p className="text-slate-600 text-sm font-medium">Total Revenue</p>
           <p className="text-3xl font-bold text-sky-600 mt-2">
-            ₹{mockBookings.filter(b => b.status === "confirmed" || b.status === "completed")
+            ₹{bookings.filter(b => b.status === "confirmed" || b.status === "completed")
               .reduce((sum, b) => sum + b.totalAmount, 0)
               .toLocaleString()}
           </p>
@@ -167,7 +181,7 @@ export default function AdminBookings() {
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2 bg-white p-4 rounded-xl border border-slate-200">
-        {["all", "pending", "confirmed", "completed", "cancelled"].map((status) => (
+        {["all", "pending", "confirmed", "completed", "cancelled", "cancellation_requests"].map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
@@ -177,14 +191,29 @@ export default function AdminBookings() {
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200"
             }`}
           >
-            {status}
+            {status === "cancellation_requests" ? "🚨 Cancellation Requests" : status}
+            {status === "cancellation_requests" && bookings.filter(b => b.cancellationStatus === "requested").length > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5">
+                {bookings.filter(b => b.cancellationStatus === "requested").length}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Bookings Table/List */}
       <div className="space-y-4">
-        {filteredBookings.length === 0 ? (
+        {error && (
+          <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+        {loading ? (
+          <div className="bg-slate-50 p-12 rounded-xl text-center border border-dashed border-slate-300">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto mb-4"></div>
+            <p className="text-slate-600 text-lg font-medium">Loading bookings...</p>
+          </div>
+        ) : filteredBookings.length === 0 ? (
           <div className="bg-slate-50 p-12 rounded-xl text-center border border-dashed border-slate-300">
             <Calendar size={48} className="mx-auto text-slate-400 mb-4" />
             <p className="text-slate-600 text-lg font-medium">No bookings found</p>
@@ -193,7 +222,7 @@ export default function AdminBookings() {
         ) : (
           filteredBookings.map((booking, index) => (
             <motion.div
-              key={booking.id}
+              key={booking._id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
@@ -205,7 +234,7 @@ export default function AdminBookings() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-xs font-medium text-slate-500 uppercase">Booking ID</p>
-                      <p className="text-lg font-bold text-slate-800">{booking.id}</p>
+                      <p className="text-lg font-bold text-slate-800">{booking._id}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(booking.status)}`}>
                       {getStatusIcon(booking.status)}
@@ -215,15 +244,15 @@ export default function AdminBookings() {
 
                   <div>
                     <p className="text-xs font-medium text-slate-500 uppercase">Vehicle</p>
-                    <p className="text-slate-800 font-semibold">{booking.carName}</p>
+                    <p className="text-slate-800 font-semibold">{booking.car ? `${booking.car.make} ${booking.car.model}` : 'Unknown Car'}</p>
                   </div>
 
                   <div className="flex items-center gap-2 text-slate-600">
                     <User size={16} />
                     <div>
                       <p className="text-xs text-slate-500">Customer</p>
-                      <p className="font-medium">{booking.customerName}</p>
-                      <p className="text-xs text-slate-500">{booking.customerEmail}</p>
+                      <p className="font-medium">{booking.user?.name || 'Unknown User'}</p>
+                      <p className="text-xs text-slate-500">{booking.user?.email || ''}</p>
                     </div>
                   </div>
                 </div>
@@ -232,17 +261,17 @@ export default function AdminBookings() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-slate-500 uppercase">Pickup</p>
+                      <p className="text-xs font-medium text-slate-500 uppercase">Pickup Date</p>
                       <p className="flex items-center gap-1 text-slate-800">
                         <MapPin size={14} />
-                        {booking.pickupLocation} - {booking.pickupDate}
+                        {new Date(booking.pickupDate).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-slate-500 uppercase">Dropoff</p>
+                      <p className="text-xs font-medium text-slate-500 uppercase">Return Date</p>
                       <p className="flex items-center gap-1 text-slate-800">
                         <MapPin size={14} />
-                        {booking.dropoffLocation} - {booking.dropoffDate}
+                        {new Date(booking.returnDate).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -250,12 +279,65 @@ export default function AdminBookings() {
                   <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                     <div>
                       <p className="text-xs font-medium text-slate-500 uppercase">Total Amount</p>
-                      <p className="text-2xl font-bold text-sky-600">₹{booking.totalAmount.toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-sky-600">₹{(booking.totalAmount || 0).toLocaleString()}</p>
                     </div>
-                    <button className="px-4 py-2 bg-sky-100 text-sky-600 rounded-lg hover:bg-sky-200 transition-colors font-medium">
-                      View Details
-                    </button>
+                    <div className="flex gap-2">
+                      {booking.status === "pending" ? (
+                        <>
+                          <button 
+                            onClick={() => handleStatusUpdate(booking._id, "confirmed")}
+                            className="px-3 py-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200 transition-colors font-medium text-sm"
+                          >
+                            Approve
+                          </button>
+                          <button 
+                            onClick={() => handleStatusUpdate(booking._id, "cancelled")}
+                            className="px-3 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm"
+                          >
+                            Reject
+                          </button>
+                        </>
+                      ) : (
+                        <button className="px-4 py-2 bg-sky-100 text-sky-600 rounded-lg hover:bg-sky-200 transition-colors font-medium">
+                          View Details
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Cancellation Request Section */}
+                  {booking.cancellationStatus === "requested" && (
+                    <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-blue-900 text-sm">Cancellation Request Pending</p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            <strong>Requested on:</strong> {new Date(booking.cancellationRequestedAt).toLocaleString()}
+                          </p>
+                          {booking.cancellationReason && (
+                            <p className="text-xs text-blue-700 mt-1">
+                              <strong>Reason:</strong> {booking.cancellationReason}
+                            </p>
+                          )}
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => handleApproveCancellation(booking._id)}
+                              className="flex-1 px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-colors font-semibold text-sm flex items-center justify-center gap-1"
+                            >
+                              <Check size={16} /> Approve
+                            </button>
+                            <button
+                              onClick={() => handleRejectCancellation(booking._id)}
+                              className="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-semibold text-sm flex items-center justify-center gap-1"
+                            >
+                              <X size={16} /> Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>

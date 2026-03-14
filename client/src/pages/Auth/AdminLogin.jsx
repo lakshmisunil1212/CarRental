@@ -98,6 +98,8 @@ export default function AdminLogin() {
       
       // Store user info along with token (token already stored by loginUser)
       localStorage.setItem("user", JSON.stringify({ 
+        id: result.user.id,
+        name: result.user.name,
         email: result.user.email, 
         role: result.user.role 
       }));
@@ -105,7 +107,11 @@ export default function AdminLogin() {
       setIsLoading(false);
       navigate("/admin");
     } catch (err) {
-      setError(err.message || "Login failed");
+      let msg = err.message || "Login failed";
+      if (msg === "Failed to fetch" || msg.includes("Unable to reach server")) {
+        msg = "Unable to contact backend. Please make sure the server is running.";
+      }
+      setError(msg);
       setIsLoading(false);
     }
   }
@@ -137,6 +143,8 @@ export default function AdminLogin() {
       
       // Store user info
       localStorage.setItem("user", JSON.stringify({ 
+        id: result.user.id,
+        name: result.user.name,
         email: result.user.email, 
         role: result.user.role 
       }));
@@ -144,7 +152,11 @@ export default function AdminLogin() {
       setIsLoading(false);
       navigate("/admin");
     } catch (err) {
-      setError(err.message || "Registration failed");
+      let msg = err.message || "Registration failed";
+      if (msg === "Failed to fetch" || msg.includes("Unable to reach server")) {
+        msg = "Unable to contact backend. Please make sure the server is running.";
+      }
+      setError(msg);
       setIsLoading(false);
     }
   }

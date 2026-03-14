@@ -73,9 +73,9 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    // Generate JWT token
+    // Generate JWT token (include name)
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, email: user.email, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -124,9 +124,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    // Generate JWT token
+    // Generate JWT token (include name)
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, email: user.email, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -199,9 +199,9 @@ router.post("/register-admin", async (req, res) => {
 
     await user.save();
 
-    // Generate JWT token
+    // Generate JWT token (include name)
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, email: user.email, role: user.role, name: user.name },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -237,6 +237,7 @@ router.get("/verify", (req, res) => {
       valid: true,
       user: {
         id: decoded.id,
+        name: decoded.name,
         email: decoded.email,
         role: decoded.role
       }

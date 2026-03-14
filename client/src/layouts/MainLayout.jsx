@@ -25,14 +25,14 @@ export default function MainLayout({ children }) {
     navigate("/");
   };
 
-  const navLinks = [
-    { name: "Cars", path: "/cars", icon: <Car size={18} /> },
-    { name: "Booking", path: "/booking", icon: <Calendar size={18} /> }, // Switched to Calendar icon
-    { name: "Help", path: "/help", icon: <HelpCircle size={18} /> },
-  ];
-
   // Check if user is admin
   const isAdmin = user?.role === "admin";
+
+  const navLinks = [
+    { name: "Cars", path: "/cars", icon: <Car size={18} /> },
+    { name: isAdmin ? "Manage Booking" : "Booking", path: isAdmin ? "/admin/bookings" : "/booking", icon: <Calendar size={18} /> },
+    { name: "Help", path: "/help", icon: <HelpCircle size={18} /> },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-800">
@@ -101,9 +101,20 @@ export default function MainLayout({ children }) {
                       <Link to="/profile" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
                         <User size={16} /> My Profile
                       </Link>
-                      <Link to="/bookings" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
-                        <Calendar size={16} /> My Bookings
-                      </Link>
+                      {isAdmin ? (
+                        <>
+                          <Link to="/admin/cars" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
+                            <Car size={16} /> Manage Cars
+                          </Link>
+                          <Link to="/admin/bookings" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
+                            <Calendar size={16} /> Manage Bookings
+                          </Link>
+                        </>
+                      ) : (
+                        <Link to="/bookings" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
+                          <Calendar size={16} /> My Bookings
+                        </Link>
+                      )}
                       <div className="border-t border-slate-100 my-1"></div>
                       <button 
                         onClick={handleLogout}

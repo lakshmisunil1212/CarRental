@@ -1,26 +1,37 @@
 import React, { useEffect, useState } from "react";
-import { fetchCars } from "../../services/api";
-import CarCard from "../../components/CarCard.jsx";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Calendar, MapPin, Search } from "lucide-react";
 
-// Animation variants
+// Animation variants for framer-motion
 const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.2 } }
 };
-
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 }
 };
+import { fetchCars } from "../../services/api";
+import CarCard from "../../components/CarCard.jsx";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, Calendar, MapPin, Search } from "lucide-react";
 
 export default function Home() {
   const [cars, setCars] = useState([]);
+  const [user, setUser] = useState(null);
+  const [error, setError] = useState("");
+
+  // DEBUG: Confirm Home page is rendering
+  if (typeof window !== 'undefined') {
+    window.__HOME_RENDERED = true;
+  }
+
+  const [locations, setLocations] = useState([
+    "Kasaragod",
+    "Kannur",
+    "Wayanad",
+    "Kozhikode",
+    "Malappuram"
+  ]);
   
   const [search, setSearch] = useState({
     location: "",
@@ -28,17 +39,52 @@ export default function Home() {
     dropoff: ""
   });
 
+  const navigate = useNavigate();
+
   useEffect(() => {
-    fetchCars().then((data) => setCars(data || []));
+    fetchCars()
+      .then((data) => {
+        const list = data || [];
+        setCars(list);
+        const setL = new Set(locations);
+        list.forEach((c) => {
+          if (c.location) setL.add(c.location);
+        });
+        setLocations(Array.from(setL));
+        setError("");
+      })
+      .catch(err => {
+        setError(err.message || "Failed to fetch cars");
+        setCars([]);
+      });
+  }, []);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
   }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log("Searching for:", search);
+    if (!search.location) return;
+    localStorage.setItem("searchPickup", search.pickup);
+    localStorage.setItem("searchDropoff", search.dropoff);
+    const params = new URLSearchParams();
+    params.append("location", search.location);
+    if (search.pickup) params.append("pickup", search.pickup);
+    if (search.dropoff) params.append("dropoff", search.dropoff);
+    navigate(`/cars?${params.toString()}`);
   };
 
   return (
     <div className="space-y-24 pb-12">
+      {error && (
+        <div className="bg-red-100 text-red-700 p-4 rounded mb-6 text-center font-bold">
+          Error: {error}
+        </div>
+      )}
       {/* --- HERO SECTION --- */}
       <section className="relative">
         
@@ -91,13 +137,16 @@ export default function Home() {
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-600 transition-colors">
                   <MapPin size={20} />
                 </div>
-                <input 
-                  type="text" 
-                  placeholder="Pickup Location"
+                <select
                   className="w-full h-12 pl-10 pr-4 bg-slate-50 hover:bg-slate-100 focus:bg-white border border-transparent focus:border-sky-200 rounded-xl outline-none transition-all text-slate-700 font-medium"
                   value={search.location}
                   onChange={(e) => setSearch({...search, location: e.target.value})}
-                />
+                >
+                  <option value="" disabled>Select pickup location</option>
+                  {locations.map((loc) => (
+                    <option key={loc} value={loc}>{loc}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Pickup Date */}
@@ -129,7 +178,8 @@ export default function Home() {
               {/* Search Button */}
               <button 
                 type="submit"
-                className="h-12 px-8 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold shadow-lg shadow-sky-200 transition-all active:scale-95 flex items-center justify-center gap-2"
+                disabled={!search.location}
+                className={`h-12 px-8 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold shadow-lg shadow-sky-200 transition-all active:scale-95 flex items-center justify-center gap-2 ${!search.location ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <Search size={20} />
                 Search
@@ -159,7 +209,7 @@ export default function Home() {
           >
             {cars.slice(0, 3).map((c) => (
               <motion.div key={c.id} variants={itemVariants}>
-                <CarCard car={c} />
+                <CarCard car={c} userRole={user?.role} />
               </motion.div>
             ))}
           </motion.div>

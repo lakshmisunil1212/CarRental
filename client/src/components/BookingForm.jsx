@@ -1,6 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { Calendar, User, Phone, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
+
+// Reusable Input Component - moved outside to prevent re-renders
+const InputGroup = memo(({ label, name, type = "text", icon: Icon, value, onChange, inputMode, pattern }) => (
+  <div className="space-y-1.5">
+    <label className="text-sm font-medium text-slate-600 ml-1">{label}</label>
+    <div className="relative group">
+      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors">
+        <Icon size={18} />
+      </div>
+      <input
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        inputMode={inputMode}
+        pattern={pattern}
+        required
+        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-slate-700 text-sm placeholder-slate-400"
+        placeholder={type === "date" ? "" : `Enter ${label.toLowerCase()}`}
+      />
+    </div>
+  </div>
+));
+
+InputGroup.displayName = "InputGroup";
 
 export default function BookingForm({ car, onSubmit }) {
   const [form, setForm] = useState({
@@ -10,9 +35,10 @@ export default function BookingForm({ car, onSubmit }) {
     phone: "",
   });
 
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  }
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  }, []);
 
   function submit(e) {
     e.preventDefault();
@@ -22,27 +48,6 @@ export default function BookingForm({ car, onSubmit }) {
       carTitle: car ? `${car.make} ${car.model}` : undefined,
     });
   }
-
-  // Reusable Input Component to keep code clean
-  const InputGroup = ({ label, name, type = "text", icon: Icon, value, onChange }) => (
-    <div className="space-y-1.5">
-      <label className="text-sm font-medium text-slate-600 ml-1">{label}</label>
-      <div className="relative group">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-sky-500 transition-colors">
-          <Icon size={18} />
-        </div>
-        <input
-          name={name}
-          type={type}
-          value={value}
-          onChange={onChange}
-          required
-          className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-slate-700 text-sm placeholder-slate-400"
-          placeholder={type === "date" ? "" : `Enter ${label.toLowerCase()}`}
-        />
-      </div>
-    </div>
-  );
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
@@ -84,10 +89,12 @@ export default function BookingForm({ car, onSubmit }) {
         <InputGroup 
           label="Phone Number" 
           name="phone" 
-          type="tel" 
+          type="text" 
           icon={Phone} 
           value={form.phone} 
-          onChange={handleChange} 
+          onChange={handleChange}
+          inputMode="numeric"
+          pattern="[0-9]{10}"
         />
 
         <motion.button

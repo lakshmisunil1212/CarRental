@@ -1,10 +1,19 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Users, Shield, ArrowRight } from "lucide-react";
 
 export default function LoginSelector() {
   const navigate = useNavigate();
+
+  // if already logged in, redirect to appropriate area
+  React.useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
+    if (user) {
+      if (user.role === "admin") navigate("/admin");
+      else navigate("/bookings");
+    }
+  }, [navigate]);
 
   const loginOptions = [
     {
@@ -27,15 +36,10 @@ export default function LoginSelector() {
 
   return (
     <div className="min-h-[90vh] flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-50 to-slate-100">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center mb-12"
-      >
+      <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-slate-800 mb-2">Welcome to Car Rental</h1>
         <p className="text-slate-600 text-lg">Please select your login type to continue</p>
-      </motion.div>
+      </div>
 
       <div className="grid md:grid-cols-2 gap-8 w-full max-w-2xl">
         {loginOptions.map((option, index) => {
@@ -43,14 +47,14 @@ export default function LoginSelector() {
           const colorClass = option.color === "sky" ? "sky" : "orange";
           
           return (
-            <motion.button
+            <div
               key={option.role}
-              initial={{ opacity: 0, x: index === 0 ? -20 : 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
-              onClick={() => navigate(option.path)}
-              className={`group relative p-8 rounded-2xl border-2 border-${colorClass}-200 bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1`}
+              className="relative"
             >
+              <Link
+                to={option.path}
+                className={`group block p-8 rounded-2xl border-2 border-${colorClass}-200 bg-white hover:shadow-2xl transition-all duration-300 hover:-translate-y-1`}
+              >
               {/* Background gradient on hover */}
               <div className={`absolute inset-0 bg-gradient-to-br from-${colorClass}-50 to-transparent opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity`}></div>
               
@@ -68,7 +72,8 @@ export default function LoginSelector() {
                   <ArrowRight className={`text-${colorClass}-600 group-hover:translate-x-1 transition-transform`} size={20} />
                 </div>
               </div>
-            </motion.button>
+            </Link>
+          </div>
           );
         })}
       </div>

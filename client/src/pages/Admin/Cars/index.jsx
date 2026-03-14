@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchCars, adminDeleteCar } from "../../../services/api";
+import { fetchMyCars, adminDeleteCar } from "../../../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Car, Plus, Edit2, Trash2, ArrowLeft } from "lucide-react";
@@ -12,7 +12,7 @@ export default function AdminCars() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchCars().then(setCars).catch(err => setError(err.message));
+    fetchMyCars().then(setCars).catch(err => setError(err.message));
   }, []);
 
   const handleDelete = async (carId) => {
@@ -56,6 +56,11 @@ export default function AdminCars() {
 
       {/* Cars Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {error && (
+          <div className="col-span-full bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+            <p className="font-semibold">Error: {error}</p>
+          </div>
+        )}
         {cars.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

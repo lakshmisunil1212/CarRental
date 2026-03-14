@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Users, Fuel, Gauge, ArrowRight, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function CarCard({ car }) {
+export default function CarCard({ car, showRegNumber = false, userRole = null }) {
   const [imageError, setImageError] = useState(false);
   const defaultFallback = "https://images.unsplash.com/photo-1549399542-7e3f8b83ad38?w=800&h=450&fit=crop";
 
@@ -17,11 +17,7 @@ export default function CarCard({ car }) {
   };
 
   return (
-    <motion.div
-      whileHover={{ y: -8 }}
-      transition={{ type: "spring", stiffness: 300 }}
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-100 border border-slate-100 flex flex-col h-full"
-    >
+    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-blue-100 border border-slate-100 flex flex-col h-full">
       {/* Image Container with Zoom Effect */}
       <div className="relative h-48 overflow-hidden bg-slate-100">
         <img
@@ -50,6 +46,7 @@ export default function CarCard({ car }) {
             <h3 className="text-lg font-bold text-slate-800 group-hover:text-sky-600 transition-colors">
               {car.make} {car.model}
             </h3>
+            <p className="text-xs text-slate-500">{car.location || "Unknown location"}</p>
             <p className="text-sm text-slate-400 font-medium">Luxury Class</p>
           </div>
           <div className="text-right">
@@ -61,6 +58,12 @@ export default function CarCard({ car }) {
 
         {/* Features Grid */}
         <div className="grid grid-cols-3 gap-2 mb-6 pt-4 border-t border-slate-50">
+          {/* registration number (only when allowed) */}
+          {showRegNumber && car.regNumber && (
+            <div className="flex flex-col items-center justify-center p-2 bg-slate-50 rounded-lg text-slate-500 text-xs gap-1 col-span-3">
+              <span className="font-bold">{car.regNumber}</span>
+            </div>
+          )}
           <div className="flex flex-col items-center justify-center p-2 bg-slate-50 rounded-lg text-slate-500 text-xs gap-1">
             <Users size={16} className="text-sky-500" />
             <span>{car.seats} Seats</span>
@@ -83,14 +86,23 @@ export default function CarCard({ car }) {
           >
             Details
           </Link>
-          <Link
-            to="/booking"
-            className="flex-1 py-2.5 px-4 text-center rounded-xl bg-sky-600 text-white font-semibold hover:bg-sky-500 shadow-lg shadow-sky-200 transition-all text-sm flex items-center justify-center gap-2 group-hover:gap-3"
-          >
-            Book <ArrowRight size={16} />
-          </Link>
+          {userRole === 'admin' ? (
+            <Link
+              to={`/admin/cars/${car._id || car.id}/edit`}
+              className="flex-1 py-2.5 px-4 text-center rounded-xl bg-sky-600 text-white font-semibold hover:bg-sky-500 shadow-lg shadow-sky-200 transition-all text-sm flex items-center justify-center gap-2"
+            >
+              Manage
+            </Link>
+          ) : (
+            <Link
+              to={`/cars/${car._id || car.id}`}
+              className="flex-1 py-2.5 px-4 text-center rounded-xl bg-sky-600 text-white font-semibold hover:bg-sky-500 shadow-lg shadow-sky-200 transition-all text-sm flex items-center justify-center gap-2 group-hover:gap-3"
+            >
+              Book <ArrowRight size={16} />
+            </Link>
+          )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

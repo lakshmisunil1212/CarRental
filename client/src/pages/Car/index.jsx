@@ -4,6 +4,7 @@ import CarCard from "../../components/CarCard.jsx";
 import Filters from "../../components/Filters.jsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { CarFront, FilterX } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 // Animation Variants
 const containerVariants = {
@@ -26,24 +27,55 @@ const itemVariants = {
 export default function Cars() {
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
   
-  // Initialize filters
-  const [filters, setFilters] = useState({ make: "", maxPrice: "" });
+  const [searchParams] = useSearchParams();
+  const initialLocation = searchParams.get("location") || "";
+  const initialPickup = searchParams.get("pickup") || "";
+  const initialDropoff = searchParams.get("dropoff") || "";
+
+  // Initialize filters - match default in Filters component
+  const [filters, setFilters] = useState({ make: "", maxPrice: "10000", location: initialLocation, ownerName: "" });
+
+  // location options for dropdown
+  const [locOptions, setLocOptions] = useState([
+    "Kasaragod",
+    "Kannur",
+    "Wayanad",
+    "Kozhikode",
+    "Malappuram"
+  ]);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
 
   useEffect(() => {
     setLoading(true);
-    fetchCars().then((data) => {
+    setError("");
+    fetchCars(filters).then((data) => {
       console.log("Fetched cars:", data);
       setCars(data || []);
       setLoading(false);
     }).catch((err) => {
       console.error("Error fetching cars:", err);
+      setError(err.message || "Unable to fetch cars. Please check the backend is running.");
       setLoading(false);
     });
-  }, []);
+  }, [filters]);
 
   // Filter Logic
   const filtered = cars.filter((c) => {
+    // Search by Location (case insensitive)
+    if (filters.location) {
+      const searchTerm = filters.location.toLowerCase();
+      if (!c.location.toLowerCase().includes(searchTerm)) return false;
+    }
+
     // Search by Make OR Model (case insensitive)
     if (filters.make) {
       const searchTerm = filters.make.toLowerCase();
@@ -60,6 +92,15 @@ export default function Cars() {
 
     return true;
   });
+
+  // update location options when cars load/change
+  useEffect(() => {
+    const setL = new Set(locOptions);
+    cars.forEach((c) => {
+      if (c.location) setL.add(c.location);
+    });
+    setLocOptions(Array.from(setL));
+  }, [cars]);
   
   console.log("Filters:", filters);
   console.log("Total cars:", cars.length);
@@ -84,7 +125,10 @@ export default function Cars() {
         
         {/* --- LEFT SIDEBAR (FILTERS) --- */}
         <aside className="md:col-span-1 sticky top-24 z-10">
-          <Filters onChange={(f) => setFilters((prev) => ({ ...prev, ...f }))} />
+          <Filters 
+            locations={locOptions} 
+            onChange={(f) => setFilters((prev) => ({ ...prev, ...f }))} 
+          />
         </aside>
 
         {/* --- RIGHT CONTENT (CAR GRID) --- */}
@@ -100,6 +144,18 @@ export default function Cars() {
                 </div>
               ))}
             </div>
+          ) : error ? (
+            /* Error state when fetch fails */
+            <div className="text-center py-24 bg-red-50 rounded-3xl border border-red-200 text-red-700">
+              <h3 className="text-xl font-bold mb-2">{error}</h3>
+              <p className="text-sm">Please ensure the backend server is running and reachable.</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-6 py-2 bg-red-100 text-red-700 font-semibold rounded-xl hover:bg-red-200 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
           ) : (
             <AnimatePresence mode="wait">
               {filtered.length > 0 ? (
@@ -112,7 +168,7 @@ export default function Cars() {
                 >
                   {filtered.map((car) => (
                     <motion.div key={car._id || car.id} variants={itemVariants} layout>
-                      <CarCard car={car} />
+                      <CarCard car={car} userRole={user?.role} />
                     </motion.div>
                   ))}
                 </motion.div>

@@ -11,7 +11,13 @@ export default function ProtectedRoute({ children, requiredRole }) {
 
   // Check if user has required role
   if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/unauthorized" replace />;
+    // Redirect based on user role
+    if (user.role === "user") {
+      // Customer trying to access admin area - redirect to bookings
+      return <Navigate to="/bookings" replace />;
+    }
+    // Admin trying to access customer area - redirect to admin dashboard
+    return <Navigate to="/admin" replace />;
   }
 
   return children;

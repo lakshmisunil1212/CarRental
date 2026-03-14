@@ -89,7 +89,7 @@ export default function CustomerLogin() {
       const result = await loginUser(form.email, form.password);
       
       // Verify user is not admin
-      if (result.role === "admin") {
+      if (result.user.role === "admin") {
         setError("Admin accounts cannot login here. Use Admin Login.");
         setIsLoading(false);
         return;
@@ -97,14 +97,19 @@ export default function CustomerLogin() {
       
       // Store user info along with token (token already stored by loginUser)
       localStorage.setItem("user", JSON.stringify({ 
-        email: result.email, 
-        role: result.role 
+        email: result.user.email, 
+        role: result.user.role 
       }));
       
       setIsLoading(false);
       navigate("/");
     } catch (err) {
-      setError(err.message || "Login failed");
+      // translate generic network failures
+      let msg = err.message || "Login failed";
+      if (msg === "Failed to fetch" || msg.includes("Unable to reach server")) {
+        msg = "Unable to contact backend. Please make sure the server is running.";
+      }
+      setError(msg);
       setIsLoading(false);
     }
   }

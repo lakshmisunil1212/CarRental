@@ -1,16 +1,51 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Car, Calendar, BarChart3, Users, Plus, ArrowRight, Settings, FileText } from "lucide-react";
+import { getAdminStats } from "../../services/api";
 
 export default function AdminDashboard() {
-  // Mock Stats Data (Replace with real data from API later)
-  const stats = [
-    { title: "Total Fleet", value: "12", icon: Car, color: "bg-blue-100 text-blue-600" },
-    { title: "Active Bookings", value: "5", icon: Calendar, color: "bg-emerald-100 text-emerald-600" },
-    { title: "Total Users", value: "34", icon: Users, color: "bg-purple-100 text-purple-600" },
-    { title: "Revenue (Mo)", value: "₹1,20000", icon: BarChart3, color: "bg-orange-100 text-orange-600" },
-  ];
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await getAdminStats();
+        setStats(data);
+        setLoading(false);
+      } catch (err) {
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600">{error}</p>
+      </div>
+    );
+  }
+
+  // Map API stats to display format
+  const displayStats = stats ? [
+    { title: "My Cars", value: stats.ownerCars?.toString() || "0", icon: Car, color: "bg-blue-100 text-blue-600" },
+    { title: "Pending Bookings", value: stats.pendingBookings?.toString() || "0", icon: Calendar, color: "bg-emerald-100 text-emerald-600" },
+    { title: "Confirmed Bookings", value: stats.confirmedBookings?.toString() || "0", icon: Users, color: "bg-purple-100 text-purple-600" },
+    { title: "Total Users", value: stats.users?.toString() || "0", icon: BarChart3, color: "bg-orange-100 text-orange-600" },
+  ] : [];
 
   // Menu Items Configuration
   const menuItems = [
@@ -52,7 +87,7 @@ export default function AdminDashboard() {
 
       {/* --- STATS ROW --- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {stats.map((stat, index) => (
+        {displayStats.map((stat, index) => (
           <motion.div 
             key={index}
             initial={{ opacity: 0, y: 20 }}

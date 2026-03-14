@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { HelpCircle, ChevronDown, MessageCircle, Phone, Mail, Clock } from "lucide-react";
+import { HelpCircle, ChevronDown } from "lucide-react";
 
 export default function Help() {
   const [openIndex, setOpenIndex] = useState(null);
@@ -40,37 +40,6 @@ export default function Help() {
     }
   ];
 
-  const contactMethods = [
-    {
-      icon: Phone,
-      title: "Phone Support",
-      description: "Call us anytime",
-      details: "+1 (800) 123-4567",
-      color: "bg-blue-100 text-blue-600"
-    },
-    {
-      icon: Mail,
-      title: "Email Support",
-      description: "We'll respond quickly",
-      details: "support@rentmyride.com",
-      color: "bg-emerald-100 text-emerald-600"
-    },
-    {
-      icon: MessageCircle,
-      title: "Live Chat",
-      description: "Instant messaging",
-      details: "Available 24/7",
-      color: "bg-purple-100 text-purple-600"
-    },
-    {
-      icon: Clock,
-      title: "Business Hours",
-      description: "Monday - Sunday",
-      details: "8:00 AM - 10:00 PM EST",
-      color: "bg-orange-100 text-orange-600"
-    }
-  ];
-
   return (
     <div className="space-y-12">
       {/* Header */}
@@ -87,29 +56,6 @@ export default function Help() {
           Find answers to common questions about our car rental service
         </p>
       </motion.div>
-
-      {/* Contact Methods */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {contactMethods.map((method, index) => {
-          const Icon = method.icon;
-          return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white p-6 rounded-xl border border-slate-200 shadow-md hover:shadow-lg transition-shadow text-center"
-            >
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-3 ${method.color}`}>
-                <Icon size={24} />
-              </div>
-              <h3 className="font-bold text-slate-800 mb-1">{method.title}</h3>
-              <p className="text-sm text-slate-600 mb-2">{method.description}</p>
-              <p className="font-semibold text-sky-600">{method.details}</p>
-            </motion.div>
-          );
-        })}
-      </div>
 
       {/* FAQ Section */}
       <div>

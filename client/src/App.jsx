@@ -48,6 +48,7 @@ function ScrollToTop() {
 }
 
 export default function App() {
+  console.log("App component rendering");
   return (
     <>
       <ScrollToTop /> {/* Scrolls window up on every navigation */}

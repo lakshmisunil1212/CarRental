@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { fetchCarById, createBooking } from "../../services/api";
 import BookingForm from "../../components/BookingForm.jsx";
 import { motion } from "framer-motion";
 import { 
-  ArrowLeft, Users, Fuel, Gauge, ShieldCheck, CheckCircle, MapPin, Star 
+  ArrowLeft, Users, Fuel, Gauge, ShieldCheck, CheckCircle, MapPin, Star, LogIn
 } from "lucide-react";
 
 export default function CarDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bookingSuccess, setBookingSuccess] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasUserBooking, setHasUserBooking] = useState(false);
+  const [bookingInfo, setBookingInfo] = useState(null);
+
+  const location = useLocation();
 
   useEffect(() => {
     setLoading(true);
@@ -19,12 +25,46 @@ export default function CarDetail() {
       .then((c) => setCar(c))
       .catch(() => setCar(null))
       .finally(() => setLoading(false));
-  }, [id]);
+      
+    // Check if user is logged in
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+
+    // determine if user has a booking for this car (either via navigation state or past bookings)
+    const navBooking = location.state && location.state.booking;
+    if (navBooking) {
+      setBookingInfo(navBooking);
+      if ((navBooking.car && (navBooking.car._id === id || navBooking.car === id)) || navBooking.carId === id) {
+        setHasUserBooking(true);
+      }
+    }
+
+    if (!navBooking && isLoggedIn) {
+      import("../../services/api").then(({ getMyBookings }) => {
+        getMyBookings().then((list) => {
+          const found = list.find((b) => (b.car && (b.car._id === id || b.car.id === id)) || b.carId === id);
+          if (found) {
+            setHasUserBooking(true);
+            setBookingInfo(found);
+          }
+        });
+      });
+    }
+  }, [id, isLoggedIn, location.state]);
+
 
   function handleBooking(data) {
+    if (!isLoggedIn) {
+      alert("Please log in first to book a car");
+      navigate("/login");
+      return;
+    }
+    
     createBooking({ ...data, carId: id })
       .then((saved) => {
         setBookingSuccess(saved);
+        setHasUserBooking(true);
+        setBookingInfo(saved);
         // Scroll to top to see success message
         window.scrollTo({ top: 0, behavior: 'smooth' });
       })
@@ -92,7 +132,7 @@ export default function CarDetail() {
           {/* Specs Grid */}
           <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
             <h2 className="text-xl font-bold text-slate-800 mb-6">Vehicle Specifications</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
               
               <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl text-center gap-2">
                 <Users size={24} className="text-sky-600" />
@@ -114,6 +154,11 @@ export default function CarDetail() {
                 <span className="text-sm font-semibold text-slate-600">Full Insurance</span>
               </div>
 
+              <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl text-center gap-2">
+                <MapPin size={24} className="text-sky-600" />
+                <span className="text-sm font-semibold text-slate-600">{car.location || "Unknown"}</span>
+              </div>
+
             </div>
 
             <div className="mt-8 prose prose-slate text-slate-500">
@@ -128,6 +173,26 @@ export default function CarDetail() {
                 <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-500"/> Bluetooth & Apple CarPlay</li>
                 <li className="flex items-center gap-2"><CheckCircle size={16} className="text-emerald-500"/> 24/7 Roadside Assistance</li>
               </ul>
+
+              {/* registration and owner info shown only after admin confirmation */}
+              {bookingInfo?.status === "confirmed" && (
+                <div className="mt-8 p-6 bg-slate-50 rounded-lg border-l-4 border-emerald-500">
+                  <h3 className="text-lg font-bold text-slate-800 mb-2">✓ Access Details (Confirmed)</h3>
+                  <p className="text-sm">
+                    <strong>Registration Number:</strong> {car.regNumber || "N/A"}
+                  </p>
+                  {car.ownerName && (
+                    <p className="text-sm">
+                      <strong>Owner:</strong> {car.ownerName}
+                    </p>
+                  )}
+                  {car.ownerPhone && (
+                    <p className="text-sm">
+                      <strong>Owner Phone:</strong> {car.ownerPhone}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -145,13 +210,13 @@ export default function CarDetail() {
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-600">
                 <CheckCircle size={40} />
               </div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Booking Confirmed!</h2>
-              <p className="text-slate-500 mb-6">Your ride is reserved. We sent a confirmation email to you.</p>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Car is Reserved!</h2>
+              <p className="text-slate-500 mb-6">Thank you for booking. Your reservation is confirmed.</p>
               
               <div className="bg-slate-50 p-4 rounded-xl text-left mb-6 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Booking ID</span>
-                  <span className="font-mono font-bold text-slate-700">#{bookingSuccess.id}</span>
+                  <span className="font-mono font-bold text-slate-700">#{bookingSuccess._id ? bookingSuccess._id.toString().slice(-8) : 'N/A'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Car</span>
@@ -166,8 +231,36 @@ export default function CarDetail() {
                 View My Bookings
               </Link>
             </motion.div>
+          ) : !isLoggedIn ? (
+            /* NOT LOGGED IN STATE */
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white p-8 rounded-3xl shadow-lg shadow-sky-100 border border-sky-200 text-center"
+            >
+              <div className="w-20 h-20 bg-sky-100 rounded-full flex items-center justify-center mx-auto mb-6 text-sky-600">
+                <LogIn size={40} />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Log In to Book</h2>
+              <p className="text-slate-500 mb-6">You need to be logged in to reserve this vehicle.</p>
+              
+              <div className="space-y-3">
+                <Link 
+                  to="/login" 
+                  className="block w-full py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold transition-colors"
+                >
+                  Log In
+                </Link>
+                <p className="text-sm text-slate-500">
+                  Don't have an account?{" "}
+                  <Link to="/register" className="text-sky-600 font-semibold hover:underline">
+                    Sign Up
+                  </Link>
+                </p>
+              </div>
+            </motion.div>
           ) : (
-            /* BOOKING FORM WRAPPER */
+            /* BOOKING FORM - LOGGED IN */
             <div className="space-y-6">
               {/* Price Header */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hidden md:block">

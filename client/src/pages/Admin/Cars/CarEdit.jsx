@@ -3,6 +3,7 @@ import { fetchCarById, adminUpdateCar, adminDeleteCar } from "../../../services/
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Save, Trash2, ArrowLeft, AlertCircle, ImagePlus } from "lucide-react";
+import ImagePreview from "../../../components/ImagePreview.jsx";
 
 export default function CarEdit() {
   const { id } = useParams();
@@ -105,6 +106,60 @@ export default function CarEdit() {
               />
             </div>
 
+            {/* Registration Number */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Registration Number
+              </label>
+              <input
+                value={form.regNumber || ""}
+                onChange={(e) => setForm({ ...form, regNumber: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                placeholder="e.g., KA01AB1234"
+                required
+              />
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Location
+              </label>
+              <input
+                value={form.location || ""}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                placeholder="e.g., Kannur"
+                required
+              />
+            </div>
+
+            {/* Owner Name */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Owner Name
+              </label>
+              <input
+                value={form.ownerName || ""}
+                onChange={(e) => setForm({ ...form, ownerName: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                placeholder="e.g., Rent My Ride"
+              />
+            </div>
+
+            {/* Owner Phone */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Owner Phone
+              </label>
+              <input
+                value={form.ownerPhone || ""}
+                onChange={(e) => setForm({ ...form, ownerPhone: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                placeholder="e.g., +91-9876543210"
+                type="tel"
+              />
+            </div>
             {/* Year */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -167,15 +222,7 @@ export default function CarEdit() {
               Paste a direct image URL (JPEG, PNG). You can use Unsplash URLs for test cars.
             </p>
             {form.img && (
-              <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                <p className="text-xs text-slate-600 mb-2">Image Preview:</p>
-                <img 
-                  src={form.img} 
-                  alt="Preview" 
-                  className="h-32 w-32 object-cover rounded-lg"
-                  onError={(e) => e.target.style.display = 'none'}
-                />
-              </div>
+              <ImagePreview url={form.img} />
             )}
           </div>
 
