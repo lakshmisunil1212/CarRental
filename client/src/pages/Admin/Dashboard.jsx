@@ -62,6 +62,12 @@ export default function AdminDashboard() {
       icon: Calendar 
     },
     { 
+      title: "Scheduler", 
+      desc: "Plan daily pickups and returns in a calendar view.", 
+      link: "/admin/scheduler", 
+      icon: Calendar 
+    },
+    { 
       title: "View Reports", 
       desc: "Analyze earnings and vehicle performance.", 
       link: "/admin/reports", 
@@ -109,7 +115,7 @@ export default function AdminDashboard() {
         <h2 className="text-xl font-bold text-slate-800 mb-5 flex items-center gap-2">
           <Settings size={20} className="text-slate-400" /> Quick Actions
         </h2>
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-6">
           {menuItems.map((item, index) => (
             <Link key={index} to={item.link}>
               <motion.div 

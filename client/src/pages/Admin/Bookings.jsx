@@ -138,6 +138,12 @@ export default function AdminBookings() {
           </div>
           <p className="text-slate-500">View and manage all customer bookings</p>
         </div>
+        <button
+          onClick={() => navigate("/admin/scheduler")}
+          className="px-4 py-2.5 bg-sky-600 text-white rounded-xl font-semibold hover:bg-sky-500 shadow-lg shadow-sky-200"
+        >
+          Open Scheduler
+        </button>
       </div>
 
       {/* Stats Cards */}

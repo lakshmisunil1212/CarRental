@@ -340,6 +340,14 @@ export async function getSmartCarRecommendations() {
   }
 }
 
+export async function getCarDetailRecommendations(carId) {
+  try {
+    return await apiCall(`/recommendations/related/${carId}`);
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch car detail recommendations");
+  }
+}
+
 export async function getMyProfile() {
   try {
     return await apiCall("/auth/profile");
@@ -377,6 +385,28 @@ export async function submitRecommendationFeedback(useful) {
     });
   } catch (err) {
     throw new Error(err.message || "Failed to submit recommendation feedback");
+  }
+}
+
+export async function submitRecommendationItemFeedback(carId, sentiment) {
+  try {
+    return await apiCall("/recommendations/feedback/item", {
+      method: "POST",
+      body: JSON.stringify({ carId, sentiment })
+    });
+  } catch (err) {
+    throw new Error(err.message || "Failed to submit recommendation item feedback");
+  }
+}
+
+export async function submitColdStartQuiz(quizData) {
+  try {
+    return await apiCall("/recommendations/cold-start-quiz", {
+      method: "POST",
+      body: JSON.stringify(quizData),
+    });
+  } catch (err) {
+    throw new Error(err.message || "Failed to submit cold start quiz");
   }
 }
 

@@ -34,6 +34,11 @@ export default function AdminBookingDetail() {
   };
   const currentTimelineIndex = timelineSteps.indexOf(getTimelineStage(booking?.status || "pending"));
 
+  const formatLocation = (point) => {
+    if (!point) return "Location not provided";
+    return [point.area, point.addressLine, point.landmark, point.city].filter(Boolean).join(", ");
+  };
+
   // Fallback: If booking is not passed via state, fetch by id (not implemented here)
   if (loading) {
     return <div className="p-8 text-center text-slate-600">Loading booking details...</div>;
@@ -78,6 +83,14 @@ export default function AdminBookingDetail() {
         <div>
           <p className="text-xs text-slate-500 uppercase font-medium">Phone</p>
           <p className="font-semibold text-slate-800">{booking.phone}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase font-medium">Pickup Location</p>
+          <p className="font-semibold text-slate-800">{formatLocation(booking.pickupLocation)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase font-medium">Return Location</p>
+          <p className="font-semibold text-slate-800">{formatLocation(booking.returnLocation)}</p>
         </div>
       </div>
       <div className="mb-6">

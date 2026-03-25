@@ -31,6 +31,7 @@ import AdminCarEdit from "./pages/Admin/Cars/CarEdit.jsx";
 import AdminBookings from "./pages/Admin/Bookings.jsx";
 import AdminReports from "./pages/Admin/Reports.jsx";
 import AdminBookingDetail from "./pages/Admin/BookingDetail.jsx";
+import AdminScheduler from "./pages/Admin/Scheduler.jsx";
 
 // Static Pages
 import Help from "./pages/Help/index.jsx";
@@ -153,6 +154,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <AdminBookingDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/scheduler" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminScheduler />
               </ProtectedRoute>
             } 
           />

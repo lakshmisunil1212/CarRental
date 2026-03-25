@@ -96,6 +96,7 @@ export default function CarCard({ car, showRegNumber = false, userRole = null, d
           ) : (
             <Link
               to={`/cars/${car._id || car.id}`}
+              state={{ openBookingWindow: true }}
               className="flex-1 py-2.5 px-4 text-center rounded-xl bg-sky-600 text-white font-semibold hover:bg-sky-500 shadow-lg shadow-sky-200 transition-all text-sm flex items-center justify-center gap-2 group-hover:gap-3"
             >
               Book <ArrowRight size={16} />

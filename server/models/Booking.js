@@ -1,5 +1,13 @@
 const mongoose = require("mongoose");
 
+const bookingPointSchema = new mongoose.Schema({
+  city: { type: String, trim: true, default: "" },
+  area: { type: String, trim: true, default: "" },
+  addressLine: { type: String, trim: true, default: "" },
+  landmark: { type: String, trim: true, default: "" },
+  notes: { type: String, trim: true, default: "" },
+}, { _id: false });
+
 function generateBookingCodeFromId(idValue) {
   const idText = String(idValue || "");
   const suffix = idText.slice(-8).toUpperCase();
@@ -16,6 +24,8 @@ const bookingSchema = new mongoose.Schema({
   returnTime: { type: String, default: "18:00" }, // HH:mm format
   name: String,
   phone: String,
+  pickupLocation: { type: bookingPointSchema, default: () => ({}) },
+  returnLocation: { type: bookingPointSchema, default: () => ({}) },
   totalPrice: Number,
   dynamicPricePerDay: Number,
   pricingFactors: {

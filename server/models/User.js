@@ -45,6 +45,21 @@ const userSchema = new mongoose.Schema({
       min: 2,
       max: 9,
       default: 5
+    },
+    preferredLocation: {
+      type: String,
+      default: "any",
+      trim: true,
+    },
+    budgetBand: {
+      type: String,
+      enum: ["budget", "balanced", "premium", "any"],
+      default: "any",
+    },
+    tripType: {
+      type: String,
+      enum: ["family", "business", "city", "highway", "any"],
+      default: "any",
     }
   },
   recommendationWeights: {
@@ -59,6 +74,14 @@ const userSchema = new mongoose.Schema({
   recommendationFeedback: {
     usefulCount: { type: Number, default: 0 },
     notUsefulCount: { type: Number, default: 0 }
+  },
+  recommendationSignals: {
+    makeAffinity: { type: Map, of: Number, default: {} },
+    locationAffinity: { type: Map, of: Number, default: {} },
+    transmissionAffinity: { type: Map, of: Number, default: {} },
+    fuelAffinity: { type: Map, of: Number, default: {} },
+    seatsAffinity: { type: Map, of: Number, default: {} },
+    carAffinity: { type: Map, of: Number, default: {} }
   },
   createdAt: { 
     type: Date, 

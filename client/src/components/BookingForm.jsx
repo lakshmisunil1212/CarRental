@@ -1,10 +1,10 @@
 import React, { useState, useCallback, memo, useEffect } from "react";
-import { Calendar, User, Phone, CheckCircle } from "lucide-react";
+import { Calendar, User, Phone, CheckCircle, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 import { getDynamicPriceQuote } from "../services/api";
 
 // Reusable Input Component - moved outside to prevent re-renders
-const InputGroup = memo(({ label, name, type = "text", icon: Icon, value, onChange, inputMode, pattern }) => (
+const InputGroup = memo(({ label, name, type = "text", icon: Icon, value, onChange, inputMode, pattern, required = true, disabled = false }) => (
   <div className="space-y-1.5">
     <label className="text-sm font-medium text-slate-600 ml-1">{label}</label>
     <div className="relative group">
@@ -18,8 +18,9 @@ const InputGroup = memo(({ label, name, type = "text", icon: Icon, value, onChan
         onChange={onChange}
         inputMode={inputMode}
         pattern={pattern}
-        required
-        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-slate-700 text-sm placeholder-slate-400"
+        required={required}
+        disabled={disabled}
+        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-slate-700 text-sm placeholder-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
         placeholder={type === "date" ? "" : `Enter ${label.toLowerCase()}`}
       />
     </div>
@@ -28,9 +29,28 @@ const InputGroup = memo(({ label, name, type = "text", icon: Icon, value, onChan
 
 InputGroup.displayName = "InputGroup";
 
-export default function BookingForm({ car, onSubmit }) {
+const TextAreaGroup = memo(({ label, name, value, onChange, placeholder, rows = 3, required = true, disabled = false }) => (
+  <div className="space-y-1.5">
+    <label className="text-sm font-medium text-slate-600 ml-1">{label}</label>
+    <textarea
+      name={name}
+      value={value}
+      onChange={onChange}
+      rows={rows}
+      required={required}
+      disabled={disabled}
+      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-slate-700 text-sm placeholder-slate-400 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+      placeholder={placeholder}
+    />
+  </div>
+));
+
+TextAreaGroup.displayName = "TextAreaGroup";
+
+export default function BookingForm({ car, onSubmit, variant = "card" }) {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isAdmin = user?.role === "admin";
+  const cityName = car?.location || "Selected city";
   const [form, setForm] = useState({
     pickupDate: "",
     pickupTime: "10:00",
@@ -38,7 +58,22 @@ export default function BookingForm({ car, onSubmit }) {
     returnTime: "18:00",
     name: "",
     phone: "",
+    pickupLocation: {
+      city: cityName,
+      area: "",
+      addressLine: "",
+      landmark: "",
+      notes: "",
+    },
+    returnLocation: {
+      city: cityName,
+      area: "",
+      addressLine: "",
+      landmark: "",
+      notes: "",
+    },
   });
+  const [sameReturnAsPickup, setSameReturnAsPickup] = useState(false);
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
@@ -47,6 +82,47 @@ export default function BookingForm({ car, onSubmit }) {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   }, []);
+
+  const handleLocationChange = useCallback((segment, field, value) => {
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [segment]: {
+          ...prev[segment],
+          city: cityName,
+          [field]: value,
+        },
+      };
+
+      if (sameReturnAsPickup && segment === "pickupLocation") {
+        next.returnLocation = {
+          ...next.pickupLocation,
+          city: cityName,
+        };
+      }
+
+      return next;
+    });
+  }, [cityName, sameReturnAsPickup]);
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      pickupLocation: {
+        ...prev.pickupLocation,
+        city: cityName,
+      },
+      returnLocation: sameReturnAsPickup
+        ? {
+            ...prev.pickupLocation,
+            city: cityName,
+          }
+        : {
+            ...prev.returnLocation,
+            city: cityName,
+          },
+    }));
+  }, [cityName, sameReturnAsPickup]);
 
   useEffect(() => {
     const carId = car?._id || car?.id;
@@ -89,8 +165,12 @@ export default function BookingForm({ car, onSubmit }) {
     });
   }
 
+  const containerClassName = variant === "modal"
+    ? ""
+    : "bg-white p-6 rounded-2xl shadow-sm border border-slate-100";
+
   return (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+    <div className={containerClassName}>
       <div className="mb-6 pb-4 border-b border-slate-50">
         <h3 className="text-xl font-bold text-slate-800">
           Book {car ? <span className="text-sky-600">{car.make} {car.model}</span> : "Your Ride"}
@@ -154,6 +234,107 @@ export default function BookingForm({ car, onSubmit }) {
           onChange={handleChange}
           inputMode="tel"
         />
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+          <div className="flex items-center gap-2 text-slate-800">
+            <MapPin size={18} className="text-sky-600" />
+            <div>
+              <div className="font-semibold">Pickup Details</div>
+              <div className="text-xs text-slate-500">Vehicle city: {cityName}</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputGroup
+              label="Pickup Area / Neighborhood"
+              name="pickupArea"
+              icon={MapPin}
+              value={form.pickupLocation.area}
+              onChange={(e) => handleLocationChange("pickupLocation", "area", e.target.value)}
+            />
+            <InputGroup
+              label="Pickup Landmark"
+              name="pickupLandmark"
+              icon={MapPin}
+              value={form.pickupLocation.landmark}
+              onChange={(e) => handleLocationChange("pickupLocation", "landmark", e.target.value)}
+              required={false}
+            />
+          </div>
+          <TextAreaGroup
+            label="Pickup Address"
+            name="pickupAddressLine"
+            value={form.pickupLocation.addressLine}
+            onChange={(e) => handleLocationChange("pickupLocation", "addressLine", e.target.value)}
+            placeholder={`Flat, street, building name, or nearby landmark in ${cityName}`}
+          />
+          <TextAreaGroup
+            label="Pickup Notes"
+            name="pickupNotes"
+            value={form.pickupLocation.notes}
+            onChange={(e) => handleLocationChange("pickupLocation", "notes", e.target.value)}
+            placeholder="Optional instructions for delivery, gate access, or contact preference"
+            rows={2}
+            required={false}
+          />
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-slate-800">
+              <MapPin size={18} className="text-emerald-600" />
+              <div>
+                <div className="font-semibold">Return Details</div>
+                <div className="text-xs text-slate-500">Vehicle return city: {cityName}</div>
+              </div>
+            </div>
+            <label className="inline-flex items-center gap-2 text-xs font-medium text-slate-600">
+              <input
+                type="checkbox"
+                checked={sameReturnAsPickup}
+                onChange={(e) => setSameReturnAsPickup(e.target.checked)}
+                className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+              />
+              Same as pickup
+            </label>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputGroup
+              label="Return Area / Neighborhood"
+              name="returnArea"
+              icon={MapPin}
+              value={form.returnLocation.area}
+              onChange={(e) => handleLocationChange("returnLocation", "area", e.target.value)}
+              disabled={sameReturnAsPickup}
+            />
+            <InputGroup
+              label="Return Landmark"
+              name="returnLandmark"
+              icon={MapPin}
+              value={form.returnLocation.landmark}
+              onChange={(e) => handleLocationChange("returnLocation", "landmark", e.target.value)}
+              required={false}
+              disabled={sameReturnAsPickup}
+            />
+          </div>
+          <TextAreaGroup
+            label="Return Address"
+            name="returnAddressLine"
+            value={form.returnLocation.addressLine}
+            onChange={(e) => handleLocationChange("returnLocation", "addressLine", e.target.value)}
+            placeholder={`Exact drop-off address in ${cityName}`}
+            disabled={sameReturnAsPickup}
+          />
+          <TextAreaGroup
+            label="Return Notes"
+            name="returnNotes"
+            value={form.returnLocation.notes}
+            onChange={(e) => handleLocationChange("returnLocation", "notes", e.target.value)}
+            placeholder="Optional instructions for the return handover"
+            rows={2}
+            required={false}
+            disabled={sameReturnAsPickup}
+          />
+        </div>
 
         {(quoteLoading || quote || quoteError) && (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">

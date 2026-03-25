@@ -14,9 +14,24 @@ function isDateArrived(dateValue) {
   return target <= today;
 }
 
+function normalizeBookingPoint(rawPoint, defaultCity) {
+  const point = rawPoint || {};
+  return {
+    city: String(point.city || defaultCity || "").trim(),
+    area: String(point.area || "").trim(),
+    addressLine: String(point.addressLine || "").trim(),
+    landmark: String(point.landmark || "").trim(),
+    notes: String(point.notes || "").trim(),
+  };
+}
+
+function isBookingPointValid(point) {
+  return Boolean(point.city && point.area && point.addressLine);
+}
+
 // POST /api/bookings  (create booking) - protected
 router.post("/", authMiddleware, async (req, res) => {
-  const { carId, pickupDate, pickupTime, returnDate, returnTime, name, phone } = req.body;
+  const { carId, pickupDate, pickupTime, returnDate, returnTime, name, phone, pickupLocation, returnLocation } = req.body;
   if (!carId || !pickupDate || !returnDate) return res.status(400).json({ message: "Missing required fields" });
 
   if (!mongoose.Types.ObjectId.isValid(carId)) return res.status(400).json({ message: "Invalid car id" });
@@ -27,6 +42,13 @@ router.post("/", authMiddleware, async (req, res) => {
   const start = new Date(pickupDate);
   const end = new Date(returnDate);
   if (end <= start) return res.status(400).json({ message: "Return date must be after pickup date" });
+
+  const normalizedPickupLocation = normalizeBookingPoint(pickupLocation, car.location);
+  const normalizedReturnLocation = normalizeBookingPoint(returnLocation, car.location);
+
+  if (!isBookingPointValid(normalizedPickupLocation) || !isBookingPointValid(normalizedReturnLocation)) {
+    return res.status(400).json({ message: "Pickup and return location details are required" });
+  }
 
   const pricing = await calculateDynamicPricing({
     Booking,
@@ -44,6 +66,8 @@ router.post("/", authMiddleware, async (req, res) => {
     returnTime: returnTime || "18:00",
     name,
     phone,
+    pickupLocation: normalizedPickupLocation,
+    returnLocation: normalizedReturnLocation,
     totalPrice: pricing.totalPrice,
     dynamicPricePerDay: pricing.dynamicPricePerDay,
     pricingFactors: pricing.factors,

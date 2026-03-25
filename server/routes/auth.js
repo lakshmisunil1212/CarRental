@@ -291,12 +291,18 @@ router.patch("/profile/preferences", async (req, res) => {
       preferredTransmission,
       preferredFuelType,
       preferredSeats,
+      preferredLocation,
+      budgetBand,
+      tripType,
     } = req.body;
 
     const updates = {};
     if (preferredTransmission) updates["preferences.preferredTransmission"] = preferredTransmission;
     if (preferredFuelType) updates["preferences.preferredFuelType"] = preferredFuelType;
     if (preferredSeats !== undefined) updates["preferences.preferredSeats"] = preferredSeats;
+    if (preferredLocation !== undefined) updates["preferences.preferredLocation"] = preferredLocation;
+    if (budgetBand !== undefined) updates["preferences.budgetBand"] = budgetBand;
+    if (tripType !== undefined) updates["preferences.tripType"] = tripType;
 
     const user = await User.findByIdAndUpdate(
       decoded.id,

@@ -41,6 +41,11 @@ export default function BookingDetail() {
     return pick <= today;
   };
 
+  const formatLocation = (point) => {
+    if (!point) return "Location not provided";
+    return [point.area, point.addressLine, point.landmark, point.city].filter(Boolean).join(", ");
+  };
+
   if (loading) {
     return (
       <div className="p-8 text-center">
@@ -134,6 +139,7 @@ export default function BookingDetail() {
             <p className="text-xs text-slate-500 uppercase font-medium">Pickup</p>
             <p className="font-semibold text-slate-800">{new Date(booking.pickupDate).toLocaleDateString()}</p>
             <p className="text-sm text-slate-600">{booking.pickupTime || '10:00'}</p>
+            <p className="text-sm text-slate-500 mt-1">{formatLocation(booking.pickupLocation)}</p>
           </div>
         </div>
         <div className="flex items-start gap-3">
@@ -144,6 +150,7 @@ export default function BookingDetail() {
             <p className="text-xs text-slate-500 uppercase font-medium">Dropoff</p>
             <p className="font-semibold text-slate-800">{new Date(booking.returnDate).toLocaleDateString()}</p>
             <p className="text-sm text-slate-600">{booking.returnTime || '18:00'}</p>
+            <p className="text-sm text-slate-500 mt-1">{formatLocation(booking.returnLocation)}</p>
           </div>
         </div>
       </div>
@@ -394,7 +401,9 @@ export default function BookingDetail() {
                             <div class="value">
                               Vehicle: ${booking.car ? `${booking.car.make} ${booking.car.model}` : "N/A"}<br/>
                               Pickup: ${new Date(booking.pickupDate).toLocaleString("en-IN")}<br/>
-                              Return: ${new Date(booking.returnDate).toLocaleString("en-IN")}
+                              Return: ${new Date(booking.returnDate).toLocaleString("en-IN")}<br/>
+                              Pickup location: ${formatLocation(booking.pickupLocation)}<br/>
+                              Return location: ${formatLocation(booking.returnLocation)}
                             </div>
                           </div>
                         </div>

@@ -110,6 +110,9 @@ export default function MainLayout({ children }) {
                           <Link to="/admin/bookings" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
                             <Calendar size={16} /> Manage Bookings
                           </Link>
+                          <Link to="/admin/scheduler" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
+                            <Calendar size={16} /> Scheduler
+                          </Link>
                         </>
                       ) : (
                         <Link to="/bookings" className="flex items-center gap-2 px-4 py-3 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-600">
