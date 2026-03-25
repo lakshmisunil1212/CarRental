@@ -10,13 +10,14 @@ const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 }
 };
-import { fetchCars } from "../../services/api";
+import { fetchCars, getDynamicPriceQuote } from "../../services/api";
 import CarCard from "../../components/CarCard.jsx";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Calendar, MapPin, Search } from "lucide-react";
 
 export default function Home() {
   const [cars, setCars] = useState([]);
+  const [dynamicPrices, setDynamicPrices] = useState({});
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
 
@@ -65,6 +66,46 @@ export default function Home() {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  useEffect(() => {
+    if (!cars.length || user?.role === "admin") {
+      setDynamicPrices({});
+      return;
+    }
+
+    const toISODate = (date) => date.toISOString().split("T")[0];
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const pickup = localStorage.getItem("searchPickup") || toISODate(today);
+    let dropoff = localStorage.getItem("searchDropoff") || toISODate(tomorrow);
+    if (new Date(dropoff) <= new Date(pickup)) {
+      const next = new Date(pickup);
+      next.setDate(next.getDate() + 1);
+      dropoff = toISODate(next);
+    }
+
+    let active = true;
+    Promise.all(
+      cars.slice(0, 3).map(async (car) => {
+        const carId = car._id || car.id;
+        try {
+          const quote = await getDynamicPriceQuote(carId, pickup, dropoff);
+          return [carId, Number(quote.dynamicPricePerDay) || Number(car.pricePerDay) || 0];
+        } catch {
+          return [carId, Number(car.pricePerDay) || 0];
+        }
+      })
+    ).then((entries) => {
+      if (!active) return;
+      setDynamicPrices(Object.fromEntries(entries));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [cars, user?.role]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -209,7 +250,11 @@ export default function Home() {
           >
             {cars.slice(0, 3).map((c) => (
               <motion.div key={c._id || c.id} variants={itemVariants}>
-                <CarCard car={c} userRole={user?.role} />
+                <CarCard
+                  car={c}
+                  userRole={user?.role}
+                  displayPrice={user?.role === "admin" ? Number(c.pricePerDay) : Number(dynamicPrices[c._id || c.id] ?? c.pricePerDay)}
+                />
               </motion.div>
             ))}
           </motion.div>

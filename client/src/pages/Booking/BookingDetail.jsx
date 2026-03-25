@@ -173,7 +173,7 @@ export default function BookingDetail() {
             <span className="text-sm">
               Daily: {" "}
               <span className="font-semibold text-sky-600">
-                ₹{booking.car.pricePerDay}/day
+                ₹{booking.dynamicPricePerDay || booking.car.pricePerDay}/day
               </span>
             </span>
           </div>
@@ -188,8 +188,10 @@ export default function BookingDetail() {
                 Math.ceil((new Date(booking.returnDate) - new Date(booking.pickupDate)) / (1000 * 60 * 60 * 24))
               );
               const totalAmount = Number(booking.totalPrice || booking.totalAmount || 0);
-              const dailyRate = booking?.car?.pricePerDay
-                ? Number(booking.car.pricePerDay)
+              const dailyRate = booking?.dynamicPricePerDay
+                ? Number(booking.dynamicPricePerDay)
+                : booking?.car?.pricePerDay
+                  ? Number(booking.car.pricePerDay)
                 : dayCount
                   ? Number((totalAmount / dayCount).toFixed(2))
                   : 0;

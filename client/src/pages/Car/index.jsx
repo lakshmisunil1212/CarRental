@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { fetchCars } from "../../services/api";
+import { fetchCars, getDynamicPriceQuote } from "../../services/api";
 import CarCard from "../../components/CarCard.jsx";
 import Filters from "../../components/Filters.jsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,6 +26,7 @@ const itemVariants = {
 
 export default function Cars() {
   const [cars, setCars] = useState([]);
+  const [dynamicPrices, setDynamicPrices] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [user, setUser] = useState(null);
@@ -68,6 +69,47 @@ export default function Cars() {
     });
   }, [filters]);
 
+  useEffect(() => {
+    if (!cars.length || user?.role === "admin") {
+      setDynamicPrices({});
+      return;
+    }
+
+    const toISODate = (date) => date.toISOString().split("T")[0];
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const pickup = initialPickup || localStorage.getItem("searchPickup") || toISODate(today);
+    let dropoff = initialDropoff || localStorage.getItem("searchDropoff") || toISODate(tomorrow);
+
+    if (new Date(dropoff) <= new Date(pickup)) {
+      const next = new Date(pickup);
+      next.setDate(next.getDate() + 1);
+      dropoff = toISODate(next);
+    }
+
+    let active = true;
+    Promise.all(
+      cars.map(async (car) => {
+        const carId = car._id || car.id;
+        try {
+          const quote = await getDynamicPriceQuote(carId, pickup, dropoff);
+          return [carId, Number(quote.dynamicPricePerDay) || Number(car.pricePerDay) || 0];
+        } catch {
+          return [carId, Number(car.pricePerDay) || 0];
+        }
+      })
+    ).then((entries) => {
+      if (!active) return;
+      setDynamicPrices(Object.fromEntries(entries));
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [cars, user?.role, initialPickup, initialDropoff]);
+
   // Filter Logic
   const filtered = cars.filter((c) => {
     // Search by Location (case insensitive)
@@ -85,8 +127,12 @@ export default function Cars() {
     }
     
     // Filter by Price
-    if (filters.maxPrice && c.pricePerDay > Number(filters.maxPrice)) {
-      console.log(`Filtering out ${c.make} ${c.model}: price ${c.pricePerDay} > ${Number(filters.maxPrice)}`);
+    const currentPrice = user?.role === "admin"
+      ? Number(c.pricePerDay)
+      : Number(dynamicPrices[c._id || c.id] ?? c.pricePerDay);
+
+    if (filters.maxPrice && currentPrice > Number(filters.maxPrice)) {
+      console.log(`Filtering out ${c.make} ${c.model}: price ${currentPrice} > ${Number(filters.maxPrice)}`);
       return false;
     }
 
@@ -168,7 +214,11 @@ export default function Cars() {
                 >
                   {filtered.map((car) => (
                     <motion.div key={car._id || car.id} variants={itemVariants} layout>
-                      <CarCard car={car} userRole={user?.role} />
+                      <CarCard
+                        car={car}
+                        userRole={user?.role}
+                        displayPrice={user?.role === "admin" ? Number(car.pricePerDay) : Number(dynamicPrices[car._id || car.id] ?? car.pricePerDay)}
+                      />
                     </motion.div>
                   ))}
                 </motion.div>

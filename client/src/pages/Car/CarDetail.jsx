@@ -15,6 +15,7 @@ export default function CarDetail() {
   const [loading, setLoading] = useState(true);
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [hasUserBooking, setHasUserBooking] = useState(false);
   const [bookingInfo, setBookingInfo] = useState(null);
 
@@ -30,6 +31,8 @@ export default function CarDetail() {
     // Check if user is logged in
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
+    const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+    setIsAdmin(storedUser?.role === "admin");
 
     // determine if user has a booking for this car (either via navigation state or past bookings)
     const navBooking = location.state && location.state.booking;
@@ -127,7 +130,11 @@ export default function CarDetail() {
           {/* Title & Price (Mobile Only View) */}
           <div className="md:hidden">
              <h1 className="text-3xl font-bold text-slate-800">{car.make} {car.model}</h1>
-             <p className="text-xl font-bold text-sky-600 mt-1">₹{car.pricePerDay} ... <span className="text-sm text-slate-400 font-normal">/ day</span></p>
+             {isAdmin ? (
+               <p className="text-xl font-bold text-sky-600 mt-1">₹{car.pricePerDay} ... <span className="text-sm text-slate-400 font-normal">/ day</span></p>
+             ) : (
+               <p className="text-sm font-semibold text-sky-600 mt-1">Dynamic price shown after selecting dates</p>
+             )}
           </div>
 
           {/* Specs Grid */}
@@ -266,19 +273,25 @@ export default function CarDetail() {
               {/* Price Header */}
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hidden md:block">
                 <h1 className="text-2xl font-bold text-slate-800">{car.make} {car.model}</h1>
-                <div className="flex items-baseline gap-1 mt-2">
-                  <span className="text-3xl font-extrabold text-sky-600">₹{car.pricePerDay}</span>
-                  <span className="text-slate-400 font-medium">/ day</span>
-                </div>
+                {isAdmin ? (
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-3xl font-extrabold text-sky-600">₹{car.pricePerDay}</span>
+                    <span className="text-slate-400 font-medium">/ day</span>
+                  </div>
+                ) : (
+                  <div className="mt-2 text-sm font-semibold text-sky-600">Dynamic price shown after selecting dates</div>
+                )}
                 <div className="flex items-center gap-1 mt-2 text-amber-500 text-sm font-medium">
                   <Star size={16} fill="currentColor" /> <span>4.8 (120 reviews)</span>
                 </div>
               </div>
 
-              {/* Booking availability visualizer */}
-              <div className="mb-4">
-                <BookingConflictVisualizer carId={car._id || car.id} />
-              </div>
+              {/* Booking availability visualizer (admin only) */}
+              {isAdmin && (
+                <div className="mb-4">
+                  <BookingConflictVisualizer carId={car._id || car.id} />
+                </div>
+              )}
 
               {/* The Form Component */}
               <BookingForm car={car} onSubmit={handleBooking} />

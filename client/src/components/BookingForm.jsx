@@ -29,6 +29,8 @@ const InputGroup = memo(({ label, name, type = "text", icon: Icon, value, onChan
 InputGroup.displayName = "InputGroup";
 
 export default function BookingForm({ car, onSubmit }) {
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const isAdmin = user?.role === "admin";
   const [form, setForm] = useState({
     pickupDate: "",
     pickupTime: "10:00",
@@ -146,12 +148,11 @@ export default function BookingForm({ car, onSubmit }) {
         <InputGroup 
           label="Phone Number" 
           name="phone" 
-          type="text" 
+          type="tel" 
           icon={Phone} 
           value={form.phone} 
           onChange={handleChange}
-          inputMode="numeric"
-          pattern="[0-9]{10}"
+          inputMode="tel"
         />
 
         {(quoteLoading || quote || quoteError) && (
@@ -160,13 +161,15 @@ export default function BookingForm({ car, onSubmit }) {
             {quoteLoading && <div className="text-slate-500">Updating quote...</div>}
             {!quoteLoading && quote && (
               <div className="space-y-1 text-slate-600">
-                <div className="flex justify-between"><span>Base / day</span><span>INR {quote.basePricePerDay}</span></div>
                 <div className="flex justify-between"><span>Dynamic / day</span><span className="font-semibold text-sky-700">INR {quote.dynamicPricePerDay}</span></div>
+                {isAdmin && <div className="flex justify-between"><span>Base / day</span><span>INR {quote.basePricePerDay}</span></div>}
                 <div className="flex justify-between"><span>Days</span><span>{quote.days}</span></div>
                 <div className="flex justify-between pt-1 border-t border-slate-200"><span className="font-semibold">Estimated total</span><span className="font-bold text-emerald-700">INR {quote.totalPrice}</span></div>
-                <div className="text-xs text-slate-500 pt-1">
-                  Demand x {quote.factors?.carDemandFactor?.toFixed(2)} | Location x {quote.factors?.locationDemandFactor?.toFixed(2)} | Weather x {quote.factors?.weatherFactor?.toFixed(2)} | Time x {quote.factors?.timeOfDayFactor?.toFixed(2)}
-                </div>
+                {isAdmin && (
+                  <div className="text-xs text-slate-500 pt-1">
+                    Demand x {quote.factors?.carDemandFactor?.toFixed(2)} | Location x {quote.factors?.locationDemandFactor?.toFixed(2)} | Weather x {quote.factors?.weatherFactor?.toFixed(2)} | Time x {quote.factors?.timeOfDayFactor?.toFixed(2)}
+                  </div>
+                )}
               </div>
             )}
             {!quoteLoading && quoteError && <div className="text-rose-600">{quoteError}</div>}

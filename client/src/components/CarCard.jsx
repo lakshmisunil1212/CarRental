@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import { Users, Fuel, Gauge, ArrowRight, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function CarCard({ car, showRegNumber = false, userRole = null }) {
+export default function CarCard({ car, showRegNumber = false, userRole = null, displayPrice }) {
   const [imageError, setImageError] = useState(false);
   const defaultFallback = "https://images.unsplash.com/photo-1549399542-7e3f8b83ad38?w=800&h=450&fit=crop";
+  const resolvedPrice = typeof displayPrice === "number" ? displayPrice : car.pricePerDay;
 
   // Get image URL or fallback
   const getImageSrc = () => {
@@ -50,8 +51,7 @@ export default function CarCard({ car, showRegNumber = false, userRole = null })
             <p className="text-sm text-slate-400 font-medium">Luxury Class</p>
           </div>
           <div className="text-right">
-            {/* UPDATED: Rupee Symbol */}
-            <div className="text-xl font-bold text-sky-600">₹{car.pricePerDay}</div>
+            <div className="text-xl font-bold text-sky-600">₹{resolvedPrice}</div>
             <div className="text-xs text-slate-400">/ day</div>
           </div>
         </div>

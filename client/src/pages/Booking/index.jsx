@@ -147,7 +147,7 @@ export default function Booking() {
                         <span className="text-sm">
                           Daily: {" "}
                           <span className="font-semibold text-sky-600">
-                            ₹{booking.car.pricePerDay}/day
+                            ₹{booking.dynamicPricePerDay || booking.car.pricePerDay}/day
                           </span>
                         </span>
                       </div>
