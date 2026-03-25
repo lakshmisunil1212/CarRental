@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { fetchCarById, createBooking, getCarDetailRecommendations } from "../../services/api";
 import BookingForm from "../../components/BookingForm.jsx";
 import BookingConflictVisualizer from "../../components/BookingConflictVisualizer.jsx";
+import CarAvailabilityVisualizer from "../../components/CarAvailabilityVisualizer.jsx";
 import { AnimatePresence, motion } from "framer-motion";
 import { 
   ArrowLeft, Users, Fuel, Gauge, ShieldCheck, CheckCircle, MapPin, Star, LogIn, X, CalendarDays
@@ -291,6 +292,7 @@ export default function CarDetail() {
             </motion.div>
           ) : !isLoggedIn ? (
             /* NOT LOGGED IN STATE */
+            <div className="space-y-6">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -317,6 +319,11 @@ export default function CarDetail() {
                 </p>
               </div>
             </motion.div>
+
+            {/* Availability visualizer visible even to non-logged-in visitors */}
+            <CarAvailabilityVisualizer carId={car._id || car.id} />
+            </div>
+
           ) : (
             /* BOOKING SUMMARY - LOGGED IN */
             <div className="space-y-6">
@@ -385,6 +392,11 @@ export default function CarDetail() {
                 <div className="mb-4">
                   <BookingConflictVisualizer carId={car._id || car.id} />
                 </div>
+              )}
+
+              {/* Availability timeline for customers */}
+              {!isAdmin && (
+                <CarAvailabilityVisualizer carId={car._id || car.id} />
               )}
             </div>
           )}
