@@ -6,7 +6,7 @@ import { Plus, ArrowLeft, ImagePlus } from "lucide-react";
 import ImagePreview from "../../../components/ImagePreview.jsx";
 
 export default function CarCreate() {
-  const [form, setForm] = useState({ make: "", model: "", year: "", pricePerDay: "", seats: 5, regNumber: "", location: "", ownerName: "", ownerPhone: "", img: "" });
+  const [form, setForm] = useState({ make: "", model: "", year: "", pricePerDay: "", seats: 5, transmission: "automatic", fuelType: "petrol", regNumber: "", location: "", ownerName: "", ownerPhone: "", img: "" });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const nav = useNavigate();
@@ -184,6 +184,33 @@ export default function CarCreate() {
                 placeholder="e.g., 5"
                 type="number"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Transmission</label>
+              <select
+                value={form.transmission}
+                onChange={(e) => setForm({ ...form, transmission: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              >
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Fuel Type</label>
+              <select
+                value={form.fuelType}
+                onChange={(e) => setForm({ ...form, fuelType: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              >
+                <option value="petrol">Petrol</option>
+                <option value="diesel">Diesel</option>
+                <option value="cng">CNG</option>
+                <option value="electric">Electric</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
             </div>
           </div>
 

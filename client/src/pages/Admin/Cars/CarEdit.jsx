@@ -203,6 +203,33 @@ export default function CarEdit() {
                 type="number"
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Transmission</label>
+              <select
+                value={form.transmission || "automatic"}
+                onChange={(e) => setForm({ ...form, transmission: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              >
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Fuel Type</label>
+              <select
+                value={form.fuelType || "petrol"}
+                onChange={(e) => setForm({ ...form, fuelType: e.target.value })}
+                className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+              >
+                <option value="petrol">Petrol</option>
+                <option value="diesel">Diesel</option>
+                <option value="cng">CNG</option>
+                <option value="electric">Electric</option>
+                <option value="hybrid">Hybrid</option>
+              </select>
+            </div>
           </div>
 
           {/* Image URL */}

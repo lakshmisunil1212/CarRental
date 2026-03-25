@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Car, User, HelpCircle, LogIn, Menu, LogOut, LayoutDashboard, Calendar } from "lucide-react";
+import { Car, User, HelpCircle, LogIn, Menu, LogOut, LayoutDashboard, Calendar, Sparkles, FileText } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function MainLayout({ children }) {
@@ -31,6 +31,7 @@ export default function MainLayout({ children }) {
   const navLinks = [
     { name: "Cars", path: "/cars", icon: <Car size={18} /> },
     { name: isAdmin ? "Manage Booking" : "Booking", path: isAdmin ? "/admin/bookings" : "/booking", icon: <Calendar size={18} /> },
+    { name: isAdmin ? "Reports" : "Smart Match", path: isAdmin ? "/admin/reports" : "/smart-match", icon: isAdmin ? <FileText size={18} /> : <Sparkles size={18} /> },
     { name: "Help", path: "/help", icon: <HelpCircle size={18} /> },
   ];
 

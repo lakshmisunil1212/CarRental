@@ -208,7 +208,7 @@ export default function Home() {
             className="grid md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {cars.slice(0, 3).map((c) => (
-              <motion.div key={c.id} variants={itemVariants}>
+              <motion.div key={c._id || c.id} variants={itemVariants}>
                 <CarCard car={c} userRole={user?.role} />
               </motion.div>
             ))}

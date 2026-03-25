@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { fetchCarById, createBooking } from "../../services/api";
 import BookingForm from "../../components/BookingForm.jsx";
+import BookingConflictVisualizer from "../../components/BookingConflictVisualizer.jsx";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft, Users, Fuel, Gauge, ShieldCheck, CheckCircle, MapPin, Star, LogIn
@@ -141,12 +142,12 @@ export default function CarDetail() {
               
               <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl text-center gap-2">
                 <Gauge size={24} className="text-sky-600" />
-                <span className="text-sm font-semibold text-slate-600">Automatic</span>
+                <span className="text-sm font-semibold text-slate-600">{car.transmission || "Automatic"}</span>
               </div>
               
               <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl text-center gap-2">
                 <Fuel size={24} className="text-sky-600" />
-                <span className="text-sm font-semibold text-slate-600">Petrol / Hybrid</span>
+                <span className="text-sm font-semibold text-slate-600">{car.fuelType || "Petrol"}</span>
               </div>
               
               <div className="flex flex-col items-center p-4 bg-slate-50 rounded-2xl text-center gap-2">
@@ -272,6 +273,11 @@ export default function CarDetail() {
                 <div className="flex items-center gap-1 mt-2 text-amber-500 text-sm font-medium">
                   <Star size={16} fill="currentColor" /> <span>4.8 (120 reviews)</span>
                 </div>
+              </div>
+
+              {/* Booking availability visualizer */}
+              <div className="mb-4">
+                <BookingConflictVisualizer carId={car._id || car.id} />
               </div>
 
               {/* The Form Component */}

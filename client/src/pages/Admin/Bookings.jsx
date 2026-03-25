@@ -85,6 +85,12 @@ export default function AdminBookings() {
     switch (status) {
       case "confirmed":
         return "bg-emerald-100 text-emerald-700";
+      case "active":
+        return "bg-teal-100 text-teal-700";
+      case "awaiting_pickup_confirmation":
+        return "bg-orange-100 text-orange-700";
+      case "awaiting_return_confirmation":
+        return "bg-indigo-100 text-indigo-700";
       case "pending":
         return "bg-amber-100 text-amber-700";
       case "completed":
@@ -100,6 +106,11 @@ export default function AdminBookings() {
     switch (status) {
       case "confirmed":
         return <CheckCircle size={16} />;
+      case "active":
+        return <CheckCircle size={16} />;
+      case "awaiting_pickup_confirmation":
+      case "awaiting_return_confirmation":
+        return <Clock size={16} />;
       case "pending":
         return <Clock size={16} />;
       case "completed":
@@ -172,8 +183,8 @@ export default function AdminBookings() {
         >
           <p className="text-slate-600 text-sm font-medium">Total Revenue</p>
           <p className="text-3xl font-bold text-sky-600 mt-2">
-            ₹{bookings.filter(b => b.status === "confirmed" || b.status === "completed")
-              .reduce((sum, b) => sum + b.totalAmount, 0)
+            ₹{bookings.filter(b => b.status === "active" || b.status === "completed")
+              .reduce((sum, b) => sum + (b.totalPrice || b.totalAmount || 0), 0)
               .toLocaleString()}
           </p>
         </motion.div>
@@ -181,7 +192,7 @@ export default function AdminBookings() {
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2 bg-white p-4 rounded-xl border border-slate-200">
-        {["all", "pending", "confirmed", "completed", "cancelled", "cancellation_requests"].map((status) => (
+        {["all", "pending", "confirmed", "active", "completed", "cancelled", "cancellation_requests"].map((status) => (
           <button
             key={status}
             onClick={() => setFilter(status)}
@@ -234,7 +245,7 @@ export default function AdminBookings() {
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="text-xs font-medium text-slate-500 uppercase">Booking ID</p>
-                      <p className="text-lg font-bold text-slate-800">{booking._id}</p>
+                      <p className="text-lg font-bold text-slate-800">{booking.bookingCode || booking._id}</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1 ${getStatusColor(booking.status)}`}>
                       {getStatusIcon(booking.status)}
@@ -261,17 +272,17 @@ export default function AdminBookings() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-slate-500 uppercase">Pickup Date</p>
+                      <p className="text-xs font-medium text-slate-500 uppercase">Pickup Date & Time</p>
                       <p className="flex items-center gap-1 text-slate-800">
                         <MapPin size={14} />
-                        {new Date(booking.pickupDate).toLocaleDateString()}
+                        {new Date(booking.pickupDate).toLocaleDateString()} at {booking.pickupTime || '10:00'}
                       </p>
                     </div>
                     <div className="flex-1">
-                      <p className="text-xs font-medium text-slate-500 uppercase">Return Date</p>
+                      <p className="text-xs font-medium text-slate-500 uppercase">Return Date & Time</p>
                       <p className="flex items-center gap-1 text-slate-800">
                         <MapPin size={14} />
-                        {new Date(booking.returnDate).toLocaleDateString()}
+                        {new Date(booking.returnDate).toLocaleDateString()} at {booking.returnTime || '18:00'}
                       </p>
                     </div>
                   </div>
@@ -279,7 +290,7 @@ export default function AdminBookings() {
                   <div className="flex items-center justify-between pt-4 border-t border-slate-200">
                     <div>
                       <p className="text-xs font-medium text-slate-500 uppercase">Total Amount</p>
-                      <p className="text-2xl font-bold text-sky-600">₹{(booking.totalAmount || 0).toLocaleString()}</p>
+                      <p className="text-2xl font-bold text-sky-600">₹{(booking.totalPrice || booking.totalAmount || 0).toLocaleString()}</p>
                     </div>
                     <div className="flex gap-2">
                       {booking.status === "pending" ? (
@@ -298,7 +309,10 @@ export default function AdminBookings() {
                           </button>
                         </>
                       ) : (
-                        <button className="px-4 py-2 bg-sky-100 text-sky-600 rounded-lg hover:bg-sky-200 transition-colors font-medium">
+                        <button
+                          onClick={() => navigate(`/admin/bookings/${booking._id}`, { state: { booking } })}
+                          className="px-4 py-2 bg-sky-100 text-sky-600 rounded-lg hover:bg-sky-200 transition-colors font-medium"
+                        >
                           View Details
                         </button>
                       )}

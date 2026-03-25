@@ -29,6 +29,37 @@ const userSchema = new mongoose.Schema({
     }, 
     default: "user" 
   },
+  preferences: {
+    preferredTransmission: {
+      type: String,
+      enum: ["automatic", "manual", "any"],
+      default: "any"
+    },
+    preferredFuelType: {
+      type: String,
+      enum: ["petrol", "diesel", "cng", "electric", "hybrid", "any"],
+      default: "any"
+    },
+    preferredSeats: {
+      type: Number,
+      min: 2,
+      max: 9,
+      default: 5
+    }
+  },
+  recommendationWeights: {
+    makeWeight: { type: Number, default: 35 },
+    locationWeight: { type: Number, default: 20 },
+    priceWeight: { type: Number, default: 30 },
+    valueWeight: { type: Number, default: 8 },
+    transmissionWeight: { type: Number, default: 15 },
+    fuelWeight: { type: Number, default: 12 },
+    seatsWeight: { type: Number, default: 14 }
+  },
+  recommendationFeedback: {
+    usefulCount: { type: Number, default: 0 },
+    notUsefulCount: { type: Number, default: 0 }
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 

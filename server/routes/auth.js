@@ -87,7 +87,8 @@ router.post("/register", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        preferences: user.preferences
       }
     });
   } catch (err) {
@@ -138,7 +139,8 @@ router.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        preferences: user.preferences
       }
     });
   } catch (err) {
@@ -213,7 +215,8 @@ router.post("/register-admin", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        preferences: user.preferences
       }
     });
   } catch (err) {
@@ -244,6 +247,77 @@ router.get("/verify", (req, res) => {
     });
   } catch (err) {
     res.status(401).json({ message: "Invalid or expired token" });
+  }
+});
+
+// GET /api/auth/profile - fetch profile and preference settings
+router.get("/profile", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("name email role preferences recommendationFeedback");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      preferences: user.preferences,
+      recommendationFeedback: user.recommendationFeedback,
+    });
+  } catch (err) {
+    res.status(401).json({ message: "Invalid or expired token" });
+  }
+});
+
+// PATCH /api/auth/profile/preferences - update recommendation preference fields
+router.patch("/profile/preferences", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const {
+      preferredTransmission,
+      preferredFuelType,
+      preferredSeats,
+    } = req.body;
+
+    const updates = {};
+    if (preferredTransmission) updates["preferences.preferredTransmission"] = preferredTransmission;
+    if (preferredFuelType) updates["preferences.preferredFuelType"] = preferredFuelType;
+    if (preferredSeats !== undefined) updates["preferences.preferredSeats"] = preferredSeats;
+
+    const user = await User.findByIdAndUpdate(
+      decoded.id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("name email role preferences recommendationFeedback");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    res.json({
+      message: "Preferences updated",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        preferences: user.preferences,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message || "Failed to update preferences" });
   }
 });
 

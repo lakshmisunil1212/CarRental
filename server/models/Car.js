@@ -6,6 +6,8 @@ const carSchema = new mongoose.Schema({
   year: Number,
   pricePerDay: { type: Number, required: true },
   seats: Number,
+  transmission: { type: String, enum: ["automatic", "manual"] },
+  fuelType: { type: String, enum: ["petrol", "diesel", "cng", "electric", "hybrid"] },
   regNumber: { type: String, required: true, unique: true },
   location: { type: String, required: true },
   ownerName: { type: String, default: "Rent My Ride" },

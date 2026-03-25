@@ -1,6 +1,7 @@
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useEffect } from "react";
 import { Calendar, User, Phone, CheckCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import { getDynamicPriceQuote } from "../services/api";
 
 // Reusable Input Component - moved outside to prevent re-renders
 const InputGroup = memo(({ label, name, type = "text", icon: Icon, value, onChange, inputMode, pattern }) => (
@@ -30,15 +31,51 @@ InputGroup.displayName = "InputGroup";
 export default function BookingForm({ car, onSubmit }) {
   const [form, setForm] = useState({
     pickupDate: "",
+    pickupTime: "10:00",
     returnDate: "",
+    returnTime: "18:00",
     name: "",
     phone: "",
   });
+  const [quote, setQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState("");
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
   }, []);
+
+  useEffect(() => {
+    const carId = car?._id || car?.id;
+    if (!carId || !form.pickupDate || !form.returnDate) {
+      setQuote(null);
+      setQuoteError("");
+      return;
+    }
+
+    let active = true;
+    setQuoteLoading(true);
+    setQuoteError("");
+
+    getDynamicPriceQuote(carId, form.pickupDate, form.returnDate)
+      .then((data) => {
+        if (!active) return;
+        setQuote(data);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setQuote(null);
+        setQuoteError(err.message || "Unable to compute live price");
+      })
+      .finally(() => {
+        if (active) setQuoteLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [car?._id, car?.id, form.pickupDate, form.returnDate]);
 
   function submit(e) {
     e.preventDefault();
@@ -46,6 +83,7 @@ export default function BookingForm({ car, onSubmit }) {
       ...form,
       carId: car?.id,
       carTitle: car ? `${car.make} ${car.model}` : undefined,
+      pricingQuote: quote || undefined,
     });
   }
 
@@ -78,6 +116,25 @@ export default function BookingForm({ car, onSubmit }) {
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <InputGroup 
+            label="Pickup Time" 
+            name="pickupTime" 
+            type="time" 
+            icon={Calendar} 
+            value={form.pickupTime} 
+            onChange={handleChange} 
+          />
+          <InputGroup 
+            label="Return Time" 
+            name="returnTime" 
+            type="time" 
+            icon={Calendar} 
+            value={form.returnTime} 
+            onChange={handleChange} 
+          />
+        </div>
+
         <InputGroup 
           label="Full Name" 
           name="name" 
@@ -97,6 +154,25 @@ export default function BookingForm({ car, onSubmit }) {
           pattern="[0-9]{10}"
         />
 
+        {(quoteLoading || quote || quoteError) && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+            <div className="font-semibold text-slate-700 mb-2">Live Dynamic Pricing</div>
+            {quoteLoading && <div className="text-slate-500">Updating quote...</div>}
+            {!quoteLoading && quote && (
+              <div className="space-y-1 text-slate-600">
+                <div className="flex justify-between"><span>Base / day</span><span>INR {quote.basePricePerDay}</span></div>
+                <div className="flex justify-between"><span>Dynamic / day</span><span className="font-semibold text-sky-700">INR {quote.dynamicPricePerDay}</span></div>
+                <div className="flex justify-between"><span>Days</span><span>{quote.days}</span></div>
+                <div className="flex justify-between pt-1 border-t border-slate-200"><span className="font-semibold">Estimated total</span><span className="font-bold text-emerald-700">INR {quote.totalPrice}</span></div>
+                <div className="text-xs text-slate-500 pt-1">
+                  Demand x {quote.factors?.carDemandFactor?.toFixed(2)} | Location x {quote.factors?.locationDemandFactor?.toFixed(2)} | Weather x {quote.factors?.weatherFactor?.toFixed(2)} | Time x {quote.factors?.timeOfDayFactor?.toFixed(2)}
+                </div>
+              </div>
+            )}
+            {!quoteLoading && quoteError && <div className="text-rose-600">{quoteError}</div>}
+          </div>
+        )}
+
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -104,7 +180,7 @@ export default function BookingForm({ car, onSubmit }) {
           className="w-full mt-2 py-3.5 bg-gradient-to-r from-sky-600 to-blue-600 text-white rounded-xl font-bold shadow-lg shadow-sky-200 hover:shadow-xl hover:shadow-sky-300 transition-all flex items-center justify-center gap-2"
         >
           <CheckCircle size={20} />
-          Confirm Booking
+          {quote?.totalPrice ? `Confirm Booking (INR ${quote.totalPrice})` : "Confirm Booking"}
         </motion.button>
       </form>
     </div>

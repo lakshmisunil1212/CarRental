@@ -108,7 +108,8 @@ export async function loginUser(email, password) {
         id: data.user.id,
         name: data.user.name,
         email: data.user.email,
-        role: data.user.role
+        role: data.user.role,
+        preferences: data.user.preferences || undefined
       }));
     }
     
@@ -245,12 +246,50 @@ export async function adminGetAllBookings() {
   }
 }
 
+// Fetch bookings for a specific car (used by booking conflict visualizer)
+export async function fetchBookingsByCar(carId) {
+  try {
+    const bookings = await apiCall(`/bookings/car/${carId}`);
+    return bookings;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch bookings for car");
+  }
+}
+
 export async function getAdminStats() {
   try {
     const stats = await apiCall("/admin/stats");
     return stats;
   } catch (err) {
     throw new Error(err.message || "Failed to fetch statistics");
+  }
+}
+
+export async function getAdminPricingInsights(range = "month") {
+  try {
+    const data = await apiCall(`/admin/pricing-insights?range=${encodeURIComponent(range)}`);
+    return data;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch pricing insights");
+  }
+}
+
+export async function getAdminReportsInsights(range = "month") {
+  try {
+    const data = await apiCall(`/admin/reports-insights?range=${encodeURIComponent(range)}`);
+    return data;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch reports insights");
+  }
+}
+
+// Fetch a single booking by id (protected)
+export async function getBookingById(id) {
+  try {
+    const booking = await apiCall(`/bookings/${id}`);
+    return booking;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch booking");
   }
 }
 
@@ -288,5 +327,64 @@ export async function rejectCancellation(id) {
     return booking;
   } catch (err) {
     throw new Error(err.message || "Failed to reject cancellation");
+  }
+}
+
+// SMART MATCHING ENDPOINTS
+export async function getSmartCarRecommendations() {
+  try {
+    const data = await apiCall("/recommendations/cars");
+    return data;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch smart recommendations");
+  }
+}
+
+export async function getMyProfile() {
+  try {
+    return await apiCall("/auth/profile");
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch profile");
+  }
+}
+
+export async function updateMyPreferences(preferences) {
+  try {
+    const data = await apiCall("/auth/profile/preferences", {
+      method: "PATCH",
+      body: JSON.stringify(preferences)
+    });
+
+    const existing = JSON.parse(localStorage.getItem("user") || "null");
+    if (existing && data?.user) {
+      localStorage.setItem("user", JSON.stringify({
+        ...existing,
+        preferences: data.user.preferences,
+      }));
+    }
+
+    return data;
+  } catch (err) {
+    throw new Error(err.message || "Failed to update preferences");
+  }
+}
+
+export async function submitRecommendationFeedback(useful) {
+  try {
+    return await apiCall("/recommendations/feedback", {
+      method: "POST",
+      body: JSON.stringify({ useful })
+    });
+  } catch (err) {
+    throw new Error(err.message || "Failed to submit recommendation feedback");
+  }
+}
+
+export async function getDynamicPriceQuote(carId, pickupDate, returnDate) {
+  try {
+    const query = new URLSearchParams({ pickupDate, returnDate });
+    return await apiCall(`/recommendations/dynamic-price/${carId}?${query.toString()}`);
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch dynamic price quote");
   }
 }

@@ -4,6 +4,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Car, Plus, Edit2, Trash2, ArrowLeft } from "lucide-react";
 
+const FALLBACK_CAR_IMAGE = "https://images.unsplash.com/photo-1549399542-7e3f8b83ad38?w=800&h=450&fit=crop";
+
+function resolveCarImage(car) {
+  const raw = (car?.img || car?.imageUrl || "").trim();
+  if (!raw) return FALLBACK_CAR_IMAGE;
+  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("/")) return raw;
+  return `/images/${raw}`;
+}
+
 export default function AdminCars() {
   const [cars, setCars] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -74,16 +83,21 @@ export default function AdminCars() {
         ) : (
           cars.map((car, index) => (
             <motion.div
-              key={car.id}
+              key={car._id || car.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
               className="bg-white p-6 rounded-xl shadow-md border border-slate-200 hover:shadow-lg transition-all"
             >
-              {/* Car Image Placeholder */}
-              <div className="w-full h-40 bg-gradient-to-br from-sky-100 to-blue-100 rounded-lg mb-4 flex items-center justify-center">
-                <Car size={48} className="text-sky-400" />
-              </div>
+              <img
+                src={resolveCarImage(car)}
+                alt={`${car.make} ${car.model}`}
+                onError={(e) => {
+                  if (e.currentTarget.src.endsWith(FALLBACK_CAR_IMAGE)) return;
+                  e.currentTarget.src = FALLBACK_CAR_IMAGE;
+                }}
+                className="w-full h-40 rounded-lg mb-4 object-cover border border-slate-200"
+              />
 
               {/* Car Details */}
               <div className="mb-4">
@@ -100,14 +114,14 @@ export default function AdminCars() {
               {/* Actions */}
               <div className="flex gap-2">
                 <Link
-                  to={`/admin/cars/${car.id}/edit`}
+                  to={`/admin/cars/${car._id || car.id}/edit`}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-sky-100 text-sky-600 rounded-lg hover:bg-sky-200 transition-colors font-medium"
                 >
                   <Edit2 size={16} />
                   Edit
                 </Link>
                 <button
-                  onClick={() => setDeleteConfirm(car.id)}
+                  onClick={() => setDeleteConfirm(car._id || car.id)}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-medium"
                 >
                   <Trash2 size={16} />

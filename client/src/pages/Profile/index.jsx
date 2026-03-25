@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, Mail, Calendar, LogOut, Shield, Settings, Car, TrendingUp, BookOpen, Wrench, Plus, ArrowRight } from "lucide-react";
-import { fetchMyCars, getAdminStats } from "../../services/api";
+import { fetchMyCars, getAdminStats, getMyProfile, updateMyPreferences } from "../../services/api";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -10,6 +10,12 @@ export default function Profile() {
   const [myCars, setMyCars] = useState([]);
   const [adminStats, setAdminStats] = useState(null);
   const [loadingAdmin, setLoadingAdmin] = useState(false);
+  const [preferences, setPreferences] = useState({
+    preferredTransmission: "any",
+    preferredFuelType: "any",
+    preferredSeats: 5,
+  });
+  const [prefsStatus, setPrefsStatus] = useState("");
 
   const handleLogout = () => {
     // Clear user data
@@ -38,6 +44,34 @@ export default function Profile() {
       });
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user || user.role !== "user") return;
+    getMyProfile()
+      .then((profile) => {
+        if (profile?.preferences) {
+          setPreferences({
+            preferredTransmission: profile.preferences.preferredTransmission || "any",
+            preferredFuelType: profile.preferences.preferredFuelType || "any",
+            preferredSeats: profile.preferences.preferredSeats || 5,
+          });
+        }
+      })
+      .catch(() => {
+        // keep defaults on error
+      });
+  }, [user]);
+
+  const savePreferences = async () => {
+    try {
+      setPrefsStatus("Saving...");
+      await updateMyPreferences(preferences);
+      setPrefsStatus("Preferences saved");
+      setTimeout(() => setPrefsStatus(""), 2000);
+    } catch (err) {
+      setPrefsStatus(err.message || "Failed to save preferences");
+    }
+  };
 
   // 1. STATE: Not Logged In
   if (!user) {
@@ -146,6 +180,62 @@ export default function Profile() {
               </div>
             </div>
           </div>
+
+          {user && user.role === "user" && (
+            <div className="mt-8 p-5 bg-cyan-50 border border-cyan-100 rounded-2xl">
+              <h3 className="text-lg font-bold text-slate-800 mb-3">Smart Match Preferences</h3>
+              <p className="text-sm text-slate-600 mb-4">Set your preferences to improve AI car recommendations.</p>
+              <div className="grid md:grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">Transmission</label>
+                  <select
+                    value={preferences.preferredTransmission}
+                    onChange={(e) => setPreferences((p) => ({ ...p, preferredTransmission: e.target.value }))}
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                  >
+                    <option value="any">Any</option>
+                    <option value="automatic">Automatic</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">Fuel Type</label>
+                  <select
+                    value={preferences.preferredFuelType}
+                    onChange={(e) => setPreferences((p) => ({ ...p, preferredFuelType: e.target.value }))}
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                  >
+                    <option value="any">Any</option>
+                    <option value="petrol">Petrol</option>
+                    <option value="diesel">Diesel</option>
+                    <option value="cng">CNG</option>
+                    <option value="electric">Electric</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500">Minimum Seats</label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="9"
+                    value={preferences.preferredSeats}
+                    onChange={(e) => setPreferences((p) => ({ ...p, preferredSeats: Number(e.target.value) || 5 }))}
+                    className="mt-1 w-full px-3 py-2 rounded-lg border border-slate-300"
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  onClick={savePreferences}
+                  className="px-4 py-2 rounded-lg bg-cyan-700 text-white font-semibold hover:bg-cyan-600"
+                >
+                  Save Preferences
+                </button>
+                {prefsStatus && <span className="text-sm text-slate-600">{prefsStatus}</span>}
+              </div>
+            </div>
+          )}
           
           {/* ADMIN FLEET OVERVIEW SECTION */}
           {user && user.role === "admin" && (

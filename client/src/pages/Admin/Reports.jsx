@@ -1,45 +1,65 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, DollarSign, Car, Users, Calendar, ArrowLeft, BarChart3, PieChart } from "lucide-react";
+import { TrendingUp, TrendingDown, Car, Users, Calendar, ArrowLeft, BarChart3, PieChart, Calculator, MapPin, CloudSun, Clock3 } from "lucide-react";
+import ScenarioSimulator from "../../components/ScenarioSimulator.jsx";
+import { getAdminPricingInsights, getAdminReportsInsights } from "../../services/api";
 
 export default function AdminReports() {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState("month");
+  const [activeTab, setActiveTab] = useState("reports");
+  const [reportsInsights, setReportsInsights] = useState(null);
+  const [reportsLoading, setReportsLoading] = useState(true);
+  const [reportsError, setReportsError] = useState("");
+  const [pricingInsights, setPricingInsights] = useState(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingError, setPricingError] = useState("");
 
-  // Mock data - Replace with API calls later
-  const revenueData = {
-    total: 450000,
-    growth: 12.5,
-    byMonth: [
-      { month: "Jan", revenue: 75000 },
-      { month: "Feb", revenue: 82000 },
-      { month: "Mar", revenue: 95000 },
-      { month: "Apr", revenue: 88000 },
-      { month: "May", revenue: 110000 },
-    ]
-  };
+  useEffect(() => {
+    if (activeTab !== "reports") return;
+    getAdminReportsInsights(dateRange)
+      .then((data) => {
+        setReportsInsights(data);
+        setReportsError("");
+      })
+      .catch((err) => setReportsError(err.message || "Failed to load reports and analytics"))
+      .finally(() => setReportsLoading(false));
+  }, [activeTab, dateRange]);
 
-  const bookingStats = {
-    total: 156,
-    completed: 98,
-    pending: 42,
-    cancelled: 16,
-  };
+  useEffect(() => {
+    if (activeTab !== "pricing") return;
+    getAdminPricingInsights(dateRange)
+      .then((data) => {
+        setPricingInsights(data);
+        setPricingError("");
+      })
+      .catch((err) => setPricingError(err.message || "Failed to load pricing dashboard"))
+      .finally(() => setPricingLoading(false));
+  }, [activeTab, dateRange]);
 
-  const carUtilization = [
-    { carName: "Toyota Camry", bookings: 24, utilization: 85 },
-    { carName: "Honda Civic", bookings: 18, utilization: 72 },
-    { carName: "Tesla Model 3", bookings: 32, utilization: 95 },
-    { carName: "Ford Focus", bookings: 15, utilization: 60 },
-  ];
+  const revenueData = useMemo(() => ({
+    total: reportsInsights?.totalRevenue || 0,
+    realized: reportsInsights?.realizedRevenue || 0,
+    growth: reportsInsights?.growth || 0,
+    trend: reportsInsights?.revenueTrend || [],
+  }), [reportsInsights]);
 
-  const topCustomers = [
-    { name: "John Doe", bookings: 5, totalSpent: 35000 },
-    { name: "Jane Smith", bookings: 4, totalSpent: 28000 },
-    { name: "Bob Wilson", bookings: 3, totalSpent: 21000 },
-    { name: "Alice Johnson", bookings: 3, totalSpent: 18000 },
-  ];
+  const bookingStats = useMemo(() => ({
+    total: reportsInsights?.bookingStats?.total || 0,
+    completed: reportsInsights?.bookingStats?.completed || 0,
+    pending: reportsInsights?.bookingStats?.pending || 0,
+    cancelled: reportsInsights?.bookingStats?.cancelled || 0,
+  }), [reportsInsights]);
+
+  const carUtilization = reportsInsights?.carUtilization || [];
+  const topCustomers = reportsInsights?.topCustomers || [];
+  const maxTrendRevenue = Math.max(...revenueData.trend.map((point) => point.revenue), 0);
+  const trendLabel = dateRange === "quarter"
+    ? "Revenue by Week"
+    : dateRange === "year"
+      ? "Revenue by Month"
+      : "Revenue by Day";
 
   return (
     <div className="space-y-8">
@@ -59,22 +79,68 @@ export default function AdminReports() {
         </div>
       </div>
 
-      {/* Date Range Filter */}
-      <div className="flex gap-2 bg-white p-4 rounded-xl border border-slate-200">
-        {["week", "month", "quarter", "year"].map((range) => (
-          <button
-            key={range}
-            onClick={() => setDateRange(range)}
-            className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
-              dateRange === range
-                ? "bg-sky-600 text-white shadow-lg shadow-sky-200"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-            }`}
-          >
-            {range}
-          </button>
-        ))}
+      {/* Tab Navigation */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 mb-6">
+        <div className="flex gap-2">
+          {[
+            { id: "reports", label: "Reports & Analytics", icon: BarChart3 },
+            { id: "simulator", label: "Scenario Simulator", icon: Calculator },
+            { id: "pricing", label: "Pricing Dashboard", icon: TrendingUp }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                if (tab.id === "reports") setReportsLoading(true);
+                if (tab.id === "pricing") setPricingLoading(true);
+              }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
+                activeTab === tab.id
+                  ? "bg-sky-600 text-white shadow-lg shadow-sky-200"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <tab.icon size={18} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {/* Conditional Content Rendering */}
+      {activeTab === "reports" ? (
+        <>
+          {/* Date Range Filter */}
+          <div className="flex gap-2 bg-white p-4 rounded-xl border border-slate-200">
+            {["week", "month", "quarter", "year"].map((range) => (
+              <button
+                key={range}
+                onClick={() => {
+                  setDateRange(range);
+                  setReportsLoading(true);
+                  setPricingLoading(true);
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
+                  dateRange === range
+                    ? "bg-sky-600 text-white shadow-lg shadow-sky-200"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {range}
+              </button>
+            ))}
+          </div>
+
+          {reportsLoading && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 text-slate-600">Loading reports...</div>
+          )}
+
+          {reportsError && !reportsLoading && (
+            <div className="bg-white p-6 rounded-xl border border-rose-200 text-rose-600">{reportsError}</div>
+          )}
+
+          {!reportsLoading && !reportsError && reportsInsights && (
+            <>
 
       {/* Revenue Overview */}
       <motion.div
@@ -86,9 +152,10 @@ export default function AdminReports() {
           <div>
             <p className="text-slate-600 text-sm font-medium uppercase">Total Revenue</p>
             <h2 className="text-4xl font-bold text-slate-800 mt-2">₹{revenueData.total.toLocaleString()}</h2>
-            <div className="flex items-center gap-2 mt-2 text-emerald-600">
-              <TrendingUp size={18} />
-              <span className="font-semibold">{revenueData.growth}% increase</span>
+            <p className="text-sm text-slate-500 mt-2">Realized revenue: ₹{revenueData.realized.toLocaleString()}</p>
+            <div className={`flex items-center gap-2 mt-2 ${revenueData.growth >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              {revenueData.growth >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+              <span className="font-semibold">{Math.abs(revenueData.growth)}% {revenueData.growth >= 0 ? "increase" : "decrease"}</span>
             </div>
           </div>
           <BarChart3 size={40} className="text-sky-400 opacity-50" />
@@ -96,22 +163,27 @@ export default function AdminReports() {
 
         {/* Mini Revenue Chart */}
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-700">Revenue by Month</h3>
+          <h3 className="font-semibold text-slate-700">{trendLabel}</h3>
+          {revenueData.trend.length === 0 ? (
+            <div className="h-24 flex items-center justify-center text-slate-500 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-200">
+              No revenue trend data available for this range.
+            </div>
+          ) : (
           <div className="flex items-end justify-between gap-2 h-32">
-            {revenueData.byMonth.map((data, index) => {
-              const maxRevenue = Math.max(...revenueData.byMonth.map(d => d.revenue));
-              const heightPercent = (data.revenue / maxRevenue) * 100;
+            {revenueData.trend.map((data, index) => {
+              const heightPercent = maxTrendRevenue > 0 ? (data.revenue / maxTrendRevenue) * 100 : 0;
               return (
                 <div key={index} className="flex-1 flex flex-col items-center">
                   <div
                     className="w-full bg-gradient-to-t from-sky-500 to-sky-400 rounded-t-lg transition-all hover:shadow-lg"
                     style={{ height: `${heightPercent}%` }}
                   ></div>
-                  <p className="text-xs font-medium text-slate-600 mt-2">{data.month}</p>
+                  <p className="text-xs font-medium text-slate-600 mt-2">{data.label}</p>
                 </div>
               );
             })}
           </div>
+          )}
         </div>
       </motion.div>
 
@@ -189,6 +261,9 @@ export default function AdminReports() {
             <Car size={20} className="text-sky-600" /> Vehicle Utilization
           </h3>
           <div className="space-y-4">
+            {carUtilization.length === 0 && (
+              <p className="text-sm text-slate-500">No utilization data for this range.</p>
+            )}
             {carUtilization.map((car, index) => (
               <div key={index}>
                 <div className="flex items-center justify-between mb-1">
@@ -218,6 +293,9 @@ export default function AdminReports() {
             <Users size={20} className="text-sky-600" /> Top Customers
           </h3>
           <div className="space-y-4">
+            {topCustomers.length === 0 && (
+              <p className="text-sm text-slate-500">No customer spend data for this range.</p>
+            )}
             {topCustomers.map((customer, index) => (
               <div
                 key={index}
@@ -233,6 +311,84 @@ export default function AdminReports() {
           </div>
         </motion.div>
       </div>
+            </>
+          )}
+        </>
+      ) : activeTab === "simulator" ? (
+        <ScenarioSimulator />
+      ) : (
+        <div className="space-y-6">
+          <div className="bg-white p-4 rounded-xl border border-slate-200">
+            <h3 className="text-lg font-bold text-slate-800 mb-1">Dynamic Pricing Dashboard</h3>
+            <p className="text-sm text-slate-500">Factor breakdown across location, time-of-day, and weather.</p>
+          </div>
+
+          {pricingLoading && (
+            <div className="bg-white p-6 rounded-xl border border-slate-200 text-slate-600">Loading pricing insights...</div>
+          )}
+
+          {pricingError && !pricingLoading && (
+            <div className="bg-white p-6 rounded-xl border border-rose-200 text-rose-600">{pricingError}</div>
+          )}
+
+          {!pricingLoading && !pricingError && pricingInsights && (
+            <>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-xl border border-slate-200">
+                  <p className="text-xs text-slate-500 uppercase font-semibold">Dynamic Bookings</p>
+                  <p className="text-3xl font-bold text-slate-800 mt-1">{pricingInsights.totalDynamicBookings || 0}</p>
+                </div>
+                <div className="bg-white p-5 rounded-xl border border-slate-200">
+                  <p className="text-xs text-slate-500 uppercase font-semibold">Avg Combined Factor</p>
+                  <p className="text-3xl font-bold text-slate-800 mt-1">{(pricingInsights.averages?.combinedFactor || 1).toFixed(2)}x</p>
+                </div>
+                <div className="bg-white p-5 rounded-xl border border-slate-200">
+                  <p className="text-xs text-slate-500 uppercase font-semibold">Avg Price Uplift</p>
+                  <p className="text-3xl font-bold text-emerald-700 mt-1">{(pricingInsights.averages?.avgUpliftPercent || 0).toFixed(1)}%</p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><MapPin size={18} className="text-sky-600" /> By Location</h4>
+                  <div className="space-y-3">
+                    {(pricingInsights.byLocation || []).slice(0, 6).map((row) => (
+                      <div key={row.location} className="p-3 bg-slate-50 rounded-lg">
+                        <div className="flex justify-between text-sm"><span className="font-semibold text-slate-700">{row.location}</span><span className="text-slate-500">{row.count} bookings</span></div>
+                        <div className="text-xs text-slate-500 mt-1">Avg factor {row.avgCombined.toFixed(2)}x | Avg price INR {Math.round(row.avgDynamicPrice)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock3 size={18} className="text-amber-600" /> By Time</h4>
+                  <div className="space-y-3">
+                    {(pricingInsights.byTimeBucket || []).map((row) => (
+                      <div key={row.bucket} className="p-3 bg-slate-50 rounded-lg">
+                        <div className="flex justify-between text-sm"><span className="font-semibold text-slate-700 capitalize">{row.bucket}</span><span className="text-slate-500">{row.count} bookings</span></div>
+                        <div className="text-xs text-slate-500 mt-1">Avg factor {row.avgFactor.toFixed(2)}x</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl border border-slate-200">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><CloudSun size={18} className="text-cyan-600" /> By Weather</h4>
+                  <div className="space-y-3">
+                    {(pricingInsights.byWeather || []).map((row) => (
+                      <div key={row.weather} className="p-3 bg-slate-50 rounded-lg">
+                        <div className="flex justify-between text-sm"><span className="font-semibold text-slate-700 capitalize">{row.weather}</span><span className="text-slate-500">{row.count} bookings</span></div>
+                        <div className="text-xs text-slate-500 mt-1">Avg factor {row.avgFactor.toFixed(2)}x</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

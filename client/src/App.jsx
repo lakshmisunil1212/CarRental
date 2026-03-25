@@ -20,6 +20,8 @@ import AdminLogin from "./pages/Auth/AdminLogin.jsx";
 import Register from "./pages/Auth/Register.jsx";
 import Profile from "./pages/Profile/index.jsx";
 import MyBookings from "./pages/MyBookings/index.jsx";
+import BookingDetail from "./pages/Booking/BookingDetail.jsx";
+import SmartMatchPage from "./pages/SmartMatch/index.jsx";
 
 // Admin Pages
 import AdminDashboard from "./pages/Admin/Dashboard.jsx";
@@ -28,6 +30,7 @@ import AdminCarCreate from "./pages/Admin/Cars/CarCreate.jsx";
 import AdminCarEdit from "./pages/Admin/Cars/CarEdit.jsx";
 import AdminBookings from "./pages/Admin/Bookings.jsx";
 import AdminReports from "./pages/Admin/Reports.jsx";
+import AdminBookingDetail from "./pages/Admin/BookingDetail.jsx";
 
 // Static Pages
 import Help from "./pages/Help/index.jsx";
@@ -87,6 +90,22 @@ export default function App() {
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/smart-match" 
+            element={
+              <ProtectedRoute requiredRole="user">
+                <SmartMatchPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/bookings/:id" 
+            element={
+              <ProtectedRoute requiredRole="user">
+                <BookingDetail />
+              </ProtectedRoute>
+            } 
+          />
 
           {/* Admin Routes - Protected */}
           <Route 
@@ -126,6 +145,14 @@ export default function App() {
             element={
               <ProtectedRoute requiredRole="admin">
                 <AdminBookings />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/bookings/:id" 
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminBookingDetail />
               </ProtectedRoute>
             } 
           />

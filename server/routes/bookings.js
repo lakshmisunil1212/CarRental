@@ -4,10 +4,19 @@ const Booking = require("../models/Booking");
 const Car = require("../models/Car");
 const { authMiddleware, adminOnly } = require("../middleware/auth");
 const mongoose = require("mongoose");
+const { calculateDynamicPricing } = require("../services/dynamicPricing");
+
+function isDateArrived(dateValue) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(dateValue);
+  target.setHours(0, 0, 0, 0);
+  return target <= today;
+}
 
 // POST /api/bookings  (create booking) - protected
 router.post("/", authMiddleware, async (req, res) => {
-  const { carId, pickupDate, returnDate, name, phone } = req.body;
+  const { carId, pickupDate, pickupTime, returnDate, returnTime, name, phone } = req.body;
   if (!carId || !pickupDate || !returnDate) return res.status(400).json({ message: "Missing required fields" });
 
   if (!mongoose.Types.ObjectId.isValid(carId)) return res.status(400).json({ message: "Invalid car id" });
@@ -19,18 +28,25 @@ router.post("/", authMiddleware, async (req, res) => {
   const end = new Date(returnDate);
   if (end <= start) return res.status(400).json({ message: "Return date must be after pickup date" });
 
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const days = Math.ceil((end - start) / msPerDay);
-  const totalPrice = days * (car.pricePerDay || 0);
+  const pricing = await calculateDynamicPricing({
+    Booking,
+    car,
+    pickupDate: start,
+    returnDate: end,
+  });
 
   const booking = new Booking({
     user: req.user.id,
     car: car._id,
     pickupDate: start,
+    pickupTime: pickupTime || "10:00",
     returnDate: end,
+    returnTime: returnTime || "18:00",
     name,
     phone,
-    totalPrice
+    totalPrice: pricing.totalPrice,
+    dynamicPricePerDay: pricing.dynamicPricePerDay,
+    pricingFactors: pricing.factors,
   });
 
   await booking.save();
@@ -49,6 +65,29 @@ router.get("/", authMiddleware, adminOnly, async (req, res) => {
   res.json(bookings);
 });
 
+// GET /api/bookings/car/:carId  (public) - list bookings for a specific car
+router.get("/car/:carId", async (req, res) => {
+  const { carId } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(carId)) return res.status(400).json({ message: "Invalid car id" });
+  const bookings = await Booking.find({ car: carId }).populate("user").sort({ pickupDate: 1 });
+  res.json(bookings);
+});
+
+// GET /api/bookings/:id  (protected) - fetch a single booking
+router.get("/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid booking id" });
+  const booking = await Booking.findById(id).populate("car user");
+  if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+  // Allow admins or the booking owner
+  if (req.user.role !== "admin" && booking.user.toString() !== req.user.id.toString()) {
+    return res.status(403).json({ message: "Not allowed to view this booking" });
+  }
+
+  res.json(booking);
+});
+
 
 // PUT /api/bookings/:id/status (admin update status, now supports new statuses)
 router.put("/:id/status", authMiddleware, adminOnly, async (req, res) => {
@@ -58,9 +97,29 @@ router.put("/:id/status", authMiddleware, adminOnly, async (req, res) => {
     "awaiting_return_confirmation", "completed", "cancelled"
   ];
   if (!allowed.includes(status)) return res.status(400).json({ message: "Invalid status" });
-  const booking = await Booking.findByIdAndUpdate(req.params.id, { status }, { new: true }).populate("car user");
+
+  const booking = await Booking.findById(req.params.id);
   if (!booking) return res.status(404).json({ message: "Booking not found" });
-  res.json(booking);
+
+  const transitions = {
+    pending: ["confirmed", "cancelled"],
+    confirmed: ["active", "cancelled"],
+    awaiting_pickup_confirmation: ["active", "cancelled"],
+    active: ["awaiting_return_confirmation", "completed", "cancelled"],
+    awaiting_return_confirmation: ["completed", "cancelled"],
+    completed: [],
+    cancelled: [],
+  };
+
+  const current = booking.status;
+  if (current !== status && !(transitions[current] || []).includes(status)) {
+    return res.status(400).json({ message: `Invalid status transition: ${current} -> ${status}` });
+  }
+
+  booking.status = status;
+  await booking.save();
+  const populated = await booking.populate("car user");
+  res.json(populated);
 });
 
 // PATCH /api/bookings/:id/confirm-pickup (customer or admin confirms pickup)
@@ -68,6 +127,14 @@ router.patch("/:id/confirm-pickup", authMiddleware, async (req, res) => {
   const { role } = req.user;
   const booking = await Booking.findById(req.params.id);
   if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+  if (!["confirmed", "awaiting_pickup_confirmation"].includes(booking.status)) {
+    return res.status(400).json({ message: "Pickup can only be confirmed for confirmed bookings" });
+  }
+  if (!isDateArrived(booking.pickupDate)) {
+    return res.status(400).json({ message: "Pickup confirmation is available on/after pickup date" });
+  }
+
   let changed = false;
   if (role === "admin") {
     booking.pickupConfirmedByAdmin = true;
@@ -93,6 +160,14 @@ router.patch("/:id/confirm-return", authMiddleware, async (req, res) => {
   const { role } = req.user;
   const booking = await Booking.findById(req.params.id);
   if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+  if (!["active", "awaiting_return_confirmation"].includes(booking.status)) {
+    return res.status(400).json({ message: "Return can only be confirmed for active trips" });
+  }
+  if (!isDateArrived(booking.returnDate)) {
+    return res.status(400).json({ message: "Return confirmation is available on/after return date" });
+  }
+
   let changed = false;
   if (role === "admin") {
     booking.returnConfirmedByAdmin = true;

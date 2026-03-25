@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { getMyBookings, cancelBooking, confirmPickup, confirmReturn } from "../../services/api";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Car, Calendar, MapPin, Clock, DollarSign, ChevronRight, ArrowRight, Download, Share2, AlertCircle, CheckCircle, XCircle, TrendingUp, FileText, Search, Filter, Calendar as CalendarIcon, Star, Edit3, Calculator, RefreshCw } from "lucide-react";
+import { Car, Calendar, MapPin, Clock, DollarSign, ChevronRight, ArrowRight, Share2, AlertCircle, CheckCircle, XCircle, TrendingUp, FileText, Search, Filter, Calendar as CalendarIcon, Star, Edit3, Calculator, RefreshCw } from "lucide-react";
+
+const FALLBACK_CAR_IMAGE = "https://images.unsplash.com/photo-1549399542-7e3f8b83ad38?w=800&h=450&fit=crop";
 
 export default function Booking() {
   const [bookings, setBookings] = useState([]);
@@ -14,12 +16,9 @@ export default function Booking() {
     getMyBookings().then(setBookings);
   }, []);
 
-  // Mock status calculation based on booking dates
-  const getBookingStatus = (pickupDate) => {
-    const pickup = new Date(pickupDate);
-    const today = new Date();
-    if (pickup > today) return "upcoming";
-    return "completed";
+  const getBookingStatusLabel = (status) => {
+    if (!status) return "pending";
+    return status.replace(/_/g, " ");
   };
 
   // Mock duration calculation
@@ -68,8 +67,12 @@ export default function Booking() {
                 {/* Car Image */}
                 {booking.car && (
                   <img
-                    src={booking.car.imageUrl}
+                    src={booking.car.img || booking.car.imageUrl || FALLBACK_CAR_IMAGE}
                     alt={booking.car.make + ' ' + booking.car.model}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = FALLBACK_CAR_IMAGE;
+                    }}
                     className="w-full md:w-48 h-32 object-cover rounded-xl border"
                   />
                 )}
@@ -81,7 +84,7 @@ export default function Booking() {
                       {booking.car ? `${booking.car.make} ${booking.car.model}` : 'Car'}
                     </h2>
                     <span className="ml-2 px-2 py-1 text-xs rounded bg-slate-100 text-slate-600">
-                      {getBookingStatus(booking.pickupDate)}
+                      {getBookingStatusLabel(booking.status)}
                     </span>
                   </div>
                   {/* Pickup & Dropoff */}
@@ -96,7 +99,7 @@ export default function Booking() {
                         <p className="font-semibold text-slate-800">
                           {new Date(booking.pickupDate).toLocaleDateString()}
                         </p>
-                        <p className="text-xs text-slate-500 mt-0.5">{new Date(booking.pickupDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        <p className="text-sm text-slate-600">{booking.pickupTime || '10:00'}</p>
                       </div>
                     </div>
                     {/* Dropoff */}
@@ -109,7 +112,7 @@ export default function Booking() {
                         <p className="font-semibold text-slate-800">
                           {new Date(booking.returnDate).toLocaleDateString()}
                         </p>
-                        <p className="text-xs text-slate-500 mt-0.5">{new Date(booking.returnDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
+                        <p className="text-sm text-slate-600">{booking.returnTime || '18:00'}</p>
                       </div>
                     </div>
                   </div>
@@ -153,12 +156,6 @@ export default function Booking() {
                   {/* Action Buttons */}
                   <div className="flex flex-wrap gap-2">
                     {/* Download Receipt */}
-                    <button
-                      onClick={() => downloadReceipt(booking)}
-                      className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors font-semibold text-sm"
-                    >
-                      <Download size={16} /> Receipt
-                    </button>
                     {/* Share Booking */}
                     <button
                       onClick={() => setShareModal(booking._id || booking.id)}
@@ -178,10 +175,7 @@ export default function Booking() {
                     {/* View Details */}
                     {booking.car && (
                       <button
-                        onClick={() => navigate(
-                          `/cars/${booking.car._id}`,
-                          { state: { booking } }
-                        )}
+                        onClick={() => navigate(`/bookings/${booking._id}`, { state: { booking } })}
                         className="flex items-center justify-center gap-2 ml-auto px-4 py-2 text-sky-600 hover:text-sky-700 font-semibold group"
                       >
                         View Details

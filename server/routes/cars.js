@@ -32,12 +32,12 @@ router.get("/:id", async (req, res) => {
 
 // POST /api/cars (admin)
 router.post("/", authMiddleware, adminOnly, async (req, res) => {
-  const { make, model, year, pricePerDay, seats, regNumber, location, ownerPhone, img } = req.body;
+  const { make, model, year, pricePerDay, seats, transmission, fuelType, regNumber, location, ownerPhone, img } = req.body;
   if (!regNumber) return res.status(400).json({ message: "Registration number is required" });
   // owner details from authenticated user
   const ownerName = req.user?.name || "";
   const ownerEmail = req.user?.email || "";
-  const car = new Car({ make, model, year, pricePerDay, seats, regNumber, location, ownerName, ownerPhone, img, ownerEmail });
+  const car = new Car({ make, model, year, pricePerDay, seats, transmission, fuelType, regNumber, location, ownerName, ownerPhone, img, ownerEmail });
   await car.save();
   res.status(201).json(car);
 });
