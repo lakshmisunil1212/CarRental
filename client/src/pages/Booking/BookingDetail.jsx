@@ -4,6 +4,7 @@ import { Car, MapPin, Clock, DollarSign, TrendingUp, Download, Share2, CheckCirc
 import { confirmPickup, confirmReturn, getBookingById } from "../../services/api";
 
 const FALLBACK_CAR_IMAGE = "https://images.unsplash.com/photo-1549399542-7e3f8b83ad38?w=800&h=450&fit=crop";
+const BACKEND_BASE = "http://localhost:5000";
 
 export default function BookingDetail() {
   const location = useLocation();
@@ -44,6 +45,12 @@ export default function BookingDetail() {
   const formatLocation = (point) => {
     if (!point) return "Location not provided";
     return [point.area, point.addressLine, point.landmark, point.city].filter(Boolean).join(", ");
+  };
+
+  const getLicenseImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+    if (/^https?:\/\//i.test(imagePath)) return imagePath;
+    return `${BACKEND_BASE}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
   };
 
   if (loading) {
@@ -186,6 +193,28 @@ export default function BookingDetail() {
           </div>
         )}
       </div>
+
+      {booking.drivingLicenseId && (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="text-xs text-slate-500 uppercase font-medium">Driving License ID</p>
+          <p className="font-semibold text-slate-800 mt-1">{booking.drivingLicenseId}</p>
+        </div>
+      )}
+
+      {booking.drivingLicenseImageUrl && (
+        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <p className="text-xs text-slate-500 uppercase font-medium">Driving License Image</p>
+          <a
+            href={getLicenseImageUrl(booking.drivingLicenseImageUrl)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center text-sm font-semibold text-sky-600 hover:text-sky-700 mt-1"
+          >
+            View uploaded license image
+          </a>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2 mb-4">
         {booking.status === "completed" ? (
           <button

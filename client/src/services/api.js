@@ -33,13 +33,19 @@ function getAuthHeader() {
 // Helper for API calls with error handling
 async function apiCall(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const mergedHeaders = {
+    ...getAuthHeader(),
+    ...options.headers,
+  };
+
+  if (!isFormData) {
+    mergedHeaders["Content-Type"] = "application/json";
+  }
+
   try {
     const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-        ...options.headers
-      },
+      headers: mergedHeaders,
       ...options
     });
     
@@ -207,9 +213,25 @@ export async function fetchMyCars() {
 // BOOKING ENDPOINTS
 export async function createBooking(bookingData) {
   try {
+    const payload = new FormData();
+    payload.append("carId", bookingData.carId);
+    payload.append("pickupDate", bookingData.pickupDate);
+    payload.append("pickupTime", bookingData.pickupTime || "10:00");
+    payload.append("returnDate", bookingData.returnDate);
+    payload.append("returnTime", bookingData.returnTime || "18:00");
+    payload.append("name", bookingData.name || "");
+    payload.append("phone", bookingData.phone || "");
+    payload.append("drivingLicenseId", bookingData.drivingLicenseId || "");
+    payload.append("pickupLocation", JSON.stringify(bookingData.pickupLocation || {}));
+    payload.append("returnLocation", JSON.stringify(bookingData.returnLocation || {}));
+
+    if (bookingData.drivingLicenseImage instanceof File) {
+      payload.append("drivingLicenseImage", bookingData.drivingLicenseImage);
+    }
+
     const booking = await apiCall("/bookings", {
       method: "POST",
-      body: JSON.stringify(bookingData)
+      body: payload
     });
     return booking;
   } catch (err) {

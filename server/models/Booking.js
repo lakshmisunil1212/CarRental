@@ -24,6 +24,8 @@ const bookingSchema = new mongoose.Schema({
   returnTime: { type: String, default: "18:00" }, // HH:mm format
   name: String,
   phone: String,
+  drivingLicenseId: { type: String, trim: true, default: "" },
+  drivingLicenseImageUrl: { type: String, trim: true, default: "" },
   pickupLocation: { type: bookingPointSchema, default: () => ({}) },
   returnLocation: { type: bookingPointSchema, default: () => ({}) },
   totalPrice: Number,

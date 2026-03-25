@@ -1,5 +1,5 @@
 import React, { useState, useCallback, memo, useEffect } from "react";
-import { Calendar, User, Phone, CheckCircle, MapPin } from "lucide-react";
+import { Calendar, User, Phone, CheckCircle, MapPin, IdCard, ImagePlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { getDynamicPriceQuote } from "../services/api";
 
@@ -58,6 +58,7 @@ export default function BookingForm({ car, onSubmit, variant = "card" }) {
     returnTime: "18:00",
     name: "",
     phone: "",
+    drivingLicenseId: "",
     pickupLocation: {
       city: cityName,
       area: "",
@@ -74,6 +75,7 @@ export default function BookingForm({ car, onSubmit, variant = "card" }) {
     },
   });
   const [sameReturnAsPickup, setSameReturnAsPickup] = useState(false);
+  const [licenseImage, setLicenseImage] = useState(null);
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState("");
@@ -104,6 +106,11 @@ export default function BookingForm({ car, onSubmit, variant = "card" }) {
       return next;
     });
   }, [cityName, sameReturnAsPickup]);
+
+  const handleLicenseImageChange = useCallback((e) => {
+    const file = e.target.files?.[0] || null;
+    setLicenseImage(file);
+  }, []);
 
   useEffect(() => {
     setForm((prev) => ({
@@ -159,7 +166,8 @@ export default function BookingForm({ car, onSubmit, variant = "card" }) {
     e.preventDefault();
     onSubmit({
       ...form,
-      carId: car?.id,
+      drivingLicenseImage: licenseImage,
+      carId: car?._id || car?.id,
       carTitle: car ? `${car.make} ${car.model}` : undefined,
       pricingQuote: quote || undefined,
     });
@@ -234,6 +242,37 @@ export default function BookingForm({ car, onSubmit, variant = "card" }) {
           onChange={handleChange}
           inputMode="tel"
         />
+
+        <InputGroup
+          label="Driving License ID"
+          name="drivingLicenseId"
+          icon={IdCard}
+          value={form.drivingLicenseId}
+          onChange={handleChange}
+        />
+        <p className="-mt-3 text-xs text-slate-500">
+          This is required for verification and will be visible to admin.
+        </p>
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-slate-600 ml-1">Driving License Image</label>
+          <div className="relative group">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors">
+              <ImagePlus size={18} />
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleLicenseImageChange}
+              required
+              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all text-slate-700 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-sky-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-sky-700 hover:file:bg-sky-200"
+            />
+          </div>
+          <p className="text-xs text-slate-500">Upload clear image (jpg/png/webp, max 5MB).</p>
+          {licenseImage?.name && (
+            <p className="text-xs text-emerald-600">Selected: {licenseImage.name}</p>
+          )}
+        </div>
 
         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 space-y-4">
           <div className="flex items-center gap-2 text-slate-800">

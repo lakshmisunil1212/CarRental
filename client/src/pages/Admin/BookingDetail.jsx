@@ -4,6 +4,8 @@ import { motion } from "framer-motion";
 import { CheckCircle } from "lucide-react";
 import { confirmPickup, confirmReturn, getBookingById } from "../../services/api";
 
+const BACKEND_BASE = "http://localhost:5000";
+
 export default function AdminBookingDetail() {
   const { id } = useParams();
   const location = useLocation();
@@ -37,6 +39,12 @@ export default function AdminBookingDetail() {
   const formatLocation = (point) => {
     if (!point) return "Location not provided";
     return [point.area, point.addressLine, point.landmark, point.city].filter(Boolean).join(", ");
+  };
+
+  const getLicenseImageUrl = (imagePath) => {
+    if (!imagePath) return "";
+    if (/^https?:\/\//i.test(imagePath)) return imagePath;
+    return `${BACKEND_BASE}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
   };
 
   // Fallback: If booking is not passed via state, fetch by id (not implemented here)
@@ -83,6 +91,25 @@ export default function AdminBookingDetail() {
         <div>
           <p className="text-xs text-slate-500 uppercase font-medium">Phone</p>
           <p className="font-semibold text-slate-800">{booking.phone}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase font-medium">Driving License ID</p>
+          <p className="font-semibold text-slate-800">{booking.drivingLicenseId || "Not provided"}</p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500 uppercase font-medium">Driving License Image</p>
+          {booking.drivingLicenseImageUrl ? (
+            <a
+              href={getLicenseImageUrl(booking.drivingLicenseImageUrl)}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-sky-600 hover:text-sky-700"
+            >
+              Open uploaded image
+            </a>
+          ) : (
+            <p className="font-semibold text-slate-800">Not provided</p>
+          )}
         </div>
         <div>
           <p className="text-xs text-slate-500 uppercase font-medium">Pickup Location</p>

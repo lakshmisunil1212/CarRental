@@ -4,7 +4,31 @@ const Booking = require("../models/Booking");
 const Car = require("../models/Car");
 const { authMiddleware, adminOnly } = require("../middleware/auth");
 const mongoose = require("mongoose");
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
 const { calculateDynamicPricing } = require("../services/dynamicPricing");
+
+const uploadsDir = path.join(__dirname, "..", "uploads", "license-proofs");
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const extension = path.extname(file.originalname || "").toLowerCase() || ".jpg";
+      const safeExt = [".jpg", ".jpeg", ".png", ".webp"].includes(extension) ? extension : ".jpg";
+      cb(null, `license-${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype || !file.mimetype.startsWith("image/")) {
+      return cb(new Error("License proof must be an image file"));
+    }
+    cb(null, true);
+  },
+});
 
 function isDateArrived(dateValue) {
   const today = new Date();
@@ -29,9 +53,25 @@ function isBookingPointValid(point) {
   return Boolean(point.city && point.area && point.addressLine);
 }
 
+function normalizeLicenseId(value) {
+  return String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+}
+
+function parseLocationPayload(value) {
+  if (!value) return undefined;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch (_err) {
+      return undefined;
+    }
+  }
+  return value;
+}
+
 // POST /api/bookings  (create booking) - protected
-router.post("/", authMiddleware, async (req, res) => {
-  const { carId, pickupDate, pickupTime, returnDate, returnTime, name, phone, pickupLocation, returnLocation } = req.body;
+router.post("/", authMiddleware, upload.single("drivingLicenseImage"), async (req, res) => {
+  const { carId, pickupDate, pickupTime, returnDate, returnTime, name, phone, drivingLicenseId, pickupLocation, returnLocation } = req.body;
   if (!carId || !pickupDate || !returnDate) return res.status(400).json({ message: "Missing required fields" });
 
   if (!mongoose.Types.ObjectId.isValid(carId)) return res.status(400).json({ message: "Invalid car id" });
@@ -43,8 +83,18 @@ router.post("/", authMiddleware, async (req, res) => {
   const end = new Date(returnDate);
   if (end <= start) return res.status(400).json({ message: "Return date must be after pickup date" });
 
-  const normalizedPickupLocation = normalizeBookingPoint(pickupLocation, car.location);
-  const normalizedReturnLocation = normalizeBookingPoint(returnLocation, car.location);
+  const normalizedPickupLocation = normalizeBookingPoint(parseLocationPayload(pickupLocation), car.location);
+  const normalizedReturnLocation = normalizeBookingPoint(parseLocationPayload(returnLocation), car.location);
+  const normalizedDrivingLicenseId = normalizeLicenseId(drivingLicenseId);
+  const uploadedLicenseImageUrl = req.file ? `/uploads/license-proofs/${req.file.filename}` : "";
+
+  if (!normalizedDrivingLicenseId || normalizedDrivingLicenseId.length < 6) {
+    return res.status(400).json({ message: "Valid driving license ID is required" });
+  }
+
+  if (!uploadedLicenseImageUrl) {
+    return res.status(400).json({ message: "Driving license image is required" });
+  }
 
   if (!isBookingPointValid(normalizedPickupLocation) || !isBookingPointValid(normalizedReturnLocation)) {
     return res.status(400).json({ message: "Pickup and return location details are required" });
@@ -66,6 +116,8 @@ router.post("/", authMiddleware, async (req, res) => {
     returnTime: returnTime || "18:00",
     name,
     phone,
+    drivingLicenseId: normalizedDrivingLicenseId,
+    drivingLicenseImageUrl: uploadedLicenseImageUrl,
     pickupLocation: normalizedPickupLocation,
     returnLocation: normalizedReturnLocation,
     totalPrice: pricing.totalPrice,
