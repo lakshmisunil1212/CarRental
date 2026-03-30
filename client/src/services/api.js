@@ -148,6 +148,7 @@ export async function fetchCars(filters = {}) {
     if (filters.maxPrice) query.append("maxPrice", filters.maxPrice);
     if (filters.location) query.append("location", filters.location);
     if (filters.ownerName) query.append("ownerName", filters.ownerName);
+    if (filters.sortBy) query.append("sortBy", filters.sortBy);
     
     const endpoint = query.toString() ? `/cars?${query}` : "/cars";
     const cars = await apiCall(endpoint);
@@ -207,6 +208,28 @@ export async function fetchMyCars() {
     return cars;
   } catch (err) {
     throw new Error(err.message || "Failed to fetch your cars");
+  }
+}
+
+// REVIEW ENDPOINTS
+export async function fetchReviews(carId) {
+  try {
+    const reviews = await apiCall(`/reviews/${carId}`);
+    return reviews;
+  } catch (err) {
+    throw new Error(err.message || "Failed to fetch reviews");
+  }
+}
+
+export async function submitReview(reviewData) {
+  try {
+    const review = await apiCall("/reviews", {
+      method: "POST",
+      body: JSON.stringify(reviewData)
+    });
+    return review;
+  } catch (err) {
+    throw new Error(err.message || "Failed to submit review");
   }
 }
 

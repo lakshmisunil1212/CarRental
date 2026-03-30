@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
-import { fetchCarById, createBooking, getCarDetailRecommendations } from "../../services/api";
+import { fetchCarById, createBooking, getCarDetailRecommendations, fetchReviews, submitReview } from "../../services/api";
 import BookingForm from "../../components/BookingForm.jsx";
 import BookingConflictVisualizer from "../../components/BookingConflictVisualizer.jsx";
 import CarAvailabilityVisualizer from "../../components/CarAvailabilityVisualizer.jsx";
@@ -22,6 +22,11 @@ export default function CarDetail() {
   const [relatedCars, setRelatedCars] = useState([]);
   const [relatedLoading, setRelatedLoading] = useState(true);
   const [isBookingWindowOpen, setIsBookingWindowOpen] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   const location = useLocation();
   const fallbackImage = "https://images.unsplash.com/photo-1549399542-7e3f8b83ad38?w=800&h=450&fit=crop";
@@ -89,6 +94,28 @@ export default function CarDetail() {
   }, [id]);
 
   useEffect(() => {
+    let isActive = true;
+
+    setReviewsLoading(true);
+    fetchReviews(id)
+      .then((data) => {
+        if (!isActive) return;
+        setReviews(data || []);
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setReviews([]);
+      })
+      .finally(() => {
+        if (isActive) setReviewsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
     if (!isBookingWindowOpen) return undefined;
 
     const handleEscape = (event) => {
@@ -124,6 +151,29 @@ export default function CarDetail() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       })
       .catch((err) => alert("Booking failed: " + err.message));
+  }
+
+  function handleReviewSubmit(e) {
+    e.preventDefault();
+    if (!isLoggedIn) {
+      alert("Please log in to submit a review");
+      navigate("/login");
+      return;
+    }
+
+    setSubmittingReview(true);
+    submitReview({
+      carId: id,
+      rating: reviewForm.rating,
+      comment: reviewForm.comment
+    })
+      .then((newReview) => {
+        setReviews([newReview, ...reviews]);
+        setReviewForm({ rating: 5, comment: "" });
+        setShowReviewForm(false);
+      })
+      .catch((err) => alert("Failed to submit review: " + err.message))
+      .finally(() => setSubmittingReview(false));
   }
 
   // --- LOADING STATE ---
@@ -254,6 +304,128 @@ export default function CarDetail() {
               )}
             </div>
           </div>
+
+          {/* Reviews Section */}
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-slate-800">Customer Reviews</h2>
+              {isLoggedIn && !isAdmin && (
+                <button
+                  onClick={() => setShowReviewForm(!showReviewForm)}
+                  className="px-4 py-2 bg-sky-600 text-white rounded-xl font-semibold hover:bg-sky-500 transition-colors text-sm"
+                >
+                  {showReviewForm ? "Cancel" : "Write Review"}
+                </button>
+              )}
+            </div>
+
+            {/* Review Form */}
+            {showReviewForm && (
+              <motion.form
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                onSubmit={handleReviewSubmit}
+                className="mb-6 p-4 bg-slate-50 rounded-xl"
+              >
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Rating</label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setReviewForm({ ...reviewForm, rating: star })}
+                        className="text-2xl"
+                      >
+                        <Star
+                          className={`${
+                            star <= reviewForm.rating
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Comment (Optional)</label>
+                  <textarea
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                    className="w-full p-3 border border-slate-200 rounded-xl focus:border-sky-300 focus:outline-none"
+                    rows="3"
+                    placeholder="Share your experience with this car..."
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={submittingReview}
+                  className="px-6 py-2 bg-sky-600 text-white rounded-xl font-semibold hover:bg-sky-500 transition-colors disabled:opacity-50"
+                >
+                  {submittingReview ? "Submitting..." : "Submit Review"}
+                </button>
+              </motion.form>
+            )}
+
+            {/* Reviews List */}
+            {reviewsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 bg-slate-200 rounded-full"></div>
+                      <div className="h-4 bg-slate-200 rounded w-24"></div>
+                    </div>
+                    <div className="h-4 bg-slate-200 rounded w-full mb-2"></div>
+                    <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+                  </div>
+                ))}
+              </div>
+            ) : reviews.length > 0 ? (
+              <div className="space-y-6">
+                {reviews.map((review) => (
+                  <div key={review._id} className="border-b border-slate-100 pb-4 last:border-b-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 bg-sky-100 rounded-full flex items-center justify-center text-sky-600 font-semibold text-sm">
+                        {review.user?.name?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-800">{review.user?.name || "Anonymous"}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                size={14}
+                                className={`${
+                                  star <= review.rating
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-gray-300"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className="text-xs text-slate-500">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {review.comment && (
+                      <p className="text-slate-600 text-sm ml-11">{review.comment}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <Star size={48} className="mx-auto mb-4 text-slate-300" />
+                <p>No reviews yet. Be the first to review this car!</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* --- RIGHT COLUMN: BOOKING SIDEBAR --- */}
@@ -348,7 +520,13 @@ export default function CarDetail() {
                 </div>
 
                 <div className="flex items-center gap-1 mt-3 text-amber-500 text-sm font-medium">
-                  <Star size={16} fill="currentColor" /> <span>4.8 (120 reviews)</span>
+                  <Star size={16} fill="currentColor" /> 
+                  <span>
+                    {reviews.length > 0 
+                      ? `${(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)} (${reviews.length} review${reviews.length !== 1 ? 's' : ''})`
+                      : "No reviews yet"
+                    }
+                  </span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-6">

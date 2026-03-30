@@ -10,6 +10,7 @@ const carRoutes = require("./routes/cars");
 const bookingRoutes = require("./routes/bookings");
 const adminRoutes = require("./routes/admin");
 const recommendationRoutes = require("./routes/recommendations");
+const reviewRoutes = require("./routes/reviews");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,6 +27,7 @@ app.use("/api/cars", carRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/recommendations", recommendationRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 // basic health
 app.get("/api/health", (req, res) => res.json({ ok: true }));

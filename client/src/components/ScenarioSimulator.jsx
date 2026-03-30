@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calculator, TrendingUp, DollarSign, Calendar, BarChart3, Target, Zap } from "lucide-react";
+import { getAdminStats } from "../services/api";
 
 export default function ScenarioSimulator() {
   const [scenarios, setScenarios] = useState([
@@ -28,6 +29,26 @@ export default function ScenarioSimulator() {
 
   const [fleetSize, setFleetSize] = useState(10);
   const [results, setResults] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getAdminStats()
+      .then((stats) => {
+        if (!isMounted) return;
+        const liveFleetSize = Number(stats?.cars) || 0;
+        if (liveFleetSize > 0) {
+          setFleetSize(liveFleetSize);
+        }
+      })
+      .catch(() => {
+        // Keep fallback default when stats endpoint is unavailable.
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Calculate revenue for a scenario
   const calculateRevenue = (scenario) => {

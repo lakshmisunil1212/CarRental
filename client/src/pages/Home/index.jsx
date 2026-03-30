@@ -43,7 +43,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchCars()
+    fetchCars({ sortBy: "rating" })
       .then((data) => {
         const list = data || [];
         setCars(list);

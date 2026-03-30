@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Users, Fuel, Gauge, ArrowRight, Image as ImageIcon } from "lucide-react";
+import { Users, Fuel, Gauge, ArrowRight, Image as ImageIcon, Star } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function CarCard({ car, showRegNumber = false, userRole = null, displayPrice }) {
@@ -36,8 +36,15 @@ export default function CarCard({ car, showRegNumber = false, userRole = null, d
             </div>
           </div>
         )}
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-sky-600 shadow-sm">
-          {car.year}
+        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm flex items-center gap-1">
+          {car.averageRating && car.averageRating > 0 ? (
+            <>
+              <Star size={12} className="text-yellow-400 fill-yellow-400" />
+              <span className="text-sky-600">{car.averageRating.toFixed(1)}</span>
+            </>
+          ) : (
+            <span className="text-slate-500">No reviews</span>
+          )}
         </div>
       </div>
 
@@ -48,7 +55,26 @@ export default function CarCard({ car, showRegNumber = false, userRole = null, d
               {car.make} {car.model}
             </h3>
             <p className="text-xs text-slate-500">{car.location || "Unknown location"}</p>
-            <p className="text-sm text-slate-400 font-medium">Luxury Class</p>
+            {car.averageRating > 0 && (
+              <div className="flex items-center gap-1 mt-1">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={12}
+                      className={`${
+                        star <= Math.round(car.averageRating)
+                          ? "text-yellow-400 fill-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-slate-600 font-medium">
+                  {car.averageRating.toFixed(1)}
+                </span>
+              </div>
+            )}
           </div>
           <div className="text-right">
             <div className="text-xl font-bold text-sky-600">₹{resolvedPrice}</div>

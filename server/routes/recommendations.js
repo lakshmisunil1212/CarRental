@@ -392,19 +392,42 @@ async function buildRecommendationsPayload(userDoc, userId) {
     .limit(50);
 
   const profile = buildUserProfile(history);
-  const allCars = await Car.find({});
+  
+  // Get all cars with average ratings
+  const allCarsWithRatings = await Car.aggregate([
+    {
+      $lookup: {
+        from: "reviews",
+        localField: "_id",
+        foreignField: "car",
+        as: "reviews"
+      }
+    },
+    {
+      $addFields: {
+        averageRating: {
+          $cond: {
+            if: { $gt: [{ $size: "$reviews" }, 0] },
+            then: { $avg: "$reviews.rating" },
+            else: 0
+          }
+        }
+      }
+    }
+  ]);
+  
   const seenCarIds = new Set(
     history
       .map((b) => (b.car?._id ? String(b.car._id) : null))
       .filter(Boolean)
   );
 
-  const ranked = allCars
+  const ranked = allCarsWithRatings
     .filter((car) => !seenCarIds.has(String(car._id)))
     .map((car) => {
       const scored = scoreCar(car, profile, preferences, weights, signals);
       return {
-        ...car.toObject(),
+        ...car,
         matchScore: scored.score,
         matchReasons: scored.reasons,
         scoreBreakdown: scored.scoreBreakdown,
@@ -414,7 +437,7 @@ async function buildRecommendationsPayload(userDoc, userId) {
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 8);
 
-  const uniqueLocations = [...new Set(allCars.map((car) => car.location).filter(Boolean))];
+  const uniqueLocations = [...new Set(allCarsWithRatings.map((car) => car.location).filter(Boolean))];
   const hasQuizSignals =
     preferences.preferredTransmission !== "any" ||
     preferences.preferredFuelType !== "any" ||

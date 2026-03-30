@@ -78,14 +78,6 @@ export default function BookingDetail() {
   const returnConfirmedByAdmin = booking.returnConfirmedByAdmin;
   const bothReturnConfirmed = returnConfirmedByCustomer && returnConfirmedByAdmin;
 
-  const timelineSteps = ["pending", "confirmed", "active", "completed"];
-  const getTimelineStage = (status) => {
-    if (["confirmed", "awaiting_pickup_confirmation"].includes(status)) return "confirmed";
-    if (["active", "awaiting_return_confirmation"].includes(status)) return "active";
-    if (status === "completed") return "completed";
-    return "pending";
-  };
-  const currentTimelineIndex = timelineSteps.indexOf(getTimelineStage(booking.status));
 
   // Get user info from localStorage
   const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -115,26 +107,6 @@ export default function BookingDetail() {
           <span className="px-2 py-1 text-xs rounded bg-slate-100 text-slate-600">
             {bothConfirmed ? "Trip Active" : booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
           </span>
-        </div>
-      </div>
-      <div className="mb-5">
-        <div className="flex flex-wrap items-center gap-2">
-          {timelineSteps.map((step, index) => {
-            const isCompleted = index < currentTimelineIndex;
-            const isCurrent = index === currentTimelineIndex;
-            const baseClass = "px-3 py-1 rounded-full text-xs font-semibold border";
-            const stateClass = isCurrent
-              ? "bg-sky-100 text-sky-700 border-sky-200"
-              : isCompleted
-                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                : "bg-slate-100 text-slate-500 border-slate-200";
-
-            return (
-              <span key={step} className={`${baseClass} ${stateClass}`}>
-                {step.charAt(0).toUpperCase() + step.slice(1)}
-              </span>
-            );
-          })}
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
